@@ -9,7 +9,7 @@ Plataforma de autoservicio B2B para diagnóstico, auditoría criptográfica DNS 
 - **Backend:** Node Runtime nativo con `node:dns/promises` (cero APIs externas de terceros para resolución DNS)
 - **Validación:** Zod v4 para esquemas estrictos de entrada
 - **Pagos y Facturación:** Stripe Checkout & Webhooks para suscripciones desatendidas ($19 USD/mes)
-- **Vigilancia Recurrente:** Vercel Cron jobs programados cada 60 min (`0 * * * *`)
+- **Vigilancia Recurrente:** Vercel Cron jobs programados cada 24 horas (`0 0 * * *`) compatibles con planes Hobby y Pro
 
 ## Características Clave
 1. **Resolución DNS Nativa en Paralelo:**
