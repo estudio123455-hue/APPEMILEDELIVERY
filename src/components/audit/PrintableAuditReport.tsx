@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { DomainAuditReport } from '@/lib/dns/types';
+import { calculatePlacementPrediction } from '@/lib/dns/placement';
 import {
   Shield,
   ShieldCheck,
@@ -16,6 +17,7 @@ import {
   FileText,
   Calendar,
   Globe,
+  Inbox,
 } from 'lucide-react';
 
 interface PrintableAuditReportProps {
@@ -23,6 +25,7 @@ interface PrintableAuditReportProps {
 }
 
 export default function PrintableAuditReport({ report }: PrintableAuditReportProps) {
+  const placementSimulation = calculatePlacementPrediction(report);
   const formattedDate = new Date(report.timestamp).toLocaleString('es-CO', {
     dateStyle: 'full',
     timeStyle: 'medium',
@@ -182,6 +185,60 @@ export default function PrintableAuditReport({ report }: PrintableAuditReportPro
             )}
           </div>
         )}
+      </section>
+
+      {/* ========================================================= */}
+      {/* 2.1 PRONÓSTICO DE ENTREGABILIDAD (SIMULADOR DE BANDEJA)   */}
+      {/* ========================================================= */}
+      <section className="mb-6 border border-slate-200 rounded-xl p-4 bg-white">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+            <Inbox className="w-3.5 h-3.5 text-slate-700" />
+            Pronóstico de Entregabilidad por Cliente (Inbox Placement)
+          </h3>
+          <span className="text-[10px] font-mono text-slate-600 font-bold">
+            Tasa Media Estimada: {placementSimulation.averageRate}%
+          </span>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          {placementSimulation.predictions.map((p) => (
+            <div
+              key={p.providerId}
+              className={`p-3 rounded-lg border ${
+                p.status === 'INBOX'
+                  ? 'border-emerald-200 bg-emerald-50/40'
+                  : p.status === 'PROMOTIONS_SUSPICIOUS'
+                  ? 'border-amber-200 bg-amber-50/40'
+                  : 'border-rose-200 bg-rose-50/40'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-bold text-slate-900 text-[11px] truncate">{p.name}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                    p.status === 'INBOX'
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : p.status === 'PROMOTIONS_SUSPICIOUS'
+                      ? 'bg-amber-100 text-amber-800 border-amber-300'
+                      : 'bg-rose-100 text-rose-800 border-rose-300'
+                  }`}
+                >
+                  {p.badgeLabel} ({p.estimatedRate}%)
+                </span>
+              </div>
+
+              <div className="text-[10px] text-slate-600 mb-1.5">
+                <strong className="text-slate-800 block">Destino previsto:</strong>
+                <span className="font-semibold text-slate-900">{p.folderName}</span>
+              </div>
+
+              <p className="text-[10px] text-slate-700 leading-snug">
+                {p.reasons[0] || p.headline}
+              </p>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* ========================================================= */}

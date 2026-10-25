@@ -8,6 +8,7 @@ import type { DomainAuditReport, Severity } from '@/lib/dns/types';
 import { createClient } from '@/utils/supabase/client';
 import DnsFixAssistant from '@/components/audit/DnsFixAssistant';
 import PrintableAuditReport from '@/components/audit/PrintableAuditReport';
+import InboxPlacementSimulator from '@/components/audit/InboxPlacementSimulator';
 import Navbar from '@/components/navigation/Navbar';
 import { FileDown, Sparkles, Lightbulb } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
@@ -555,6 +556,9 @@ export default function Home() {
                 )}
               </div>
             )}
+
+            {/* Inbox Placement Simulator (Simulador de Ubicación de Bandeja) */}
+            <InboxPlacementSimulator report={report} />
 
             {/* 5 Pillars Grid */}
             <div className="flex flex-col gap-4">
