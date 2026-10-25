@@ -97,10 +97,11 @@ export default function Home() {
       .replace(/^\.+|\.+$/g, '');
   };
 
-  const handleAudit = async (e?: React.FormEvent) => {
+  const handleAudit = async (targetDomain?: string, e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    const cleaned = cleanDomainForSubmit(domainInput);
+    const rawDomain = targetDomain || domainInput;
+    const cleaned = cleanDomainForSubmit(rawDomain);
     if (!cleaned) {
       setErrorMsg('Por favor ingresa un nombre de dominio válido (ej. tuempresa.com).');
       return;
@@ -108,6 +109,7 @@ export default function Home() {
 
     setIsLoading(true);
     setErrorMsg(null);
+    setDomainInput(cleaned);
 
     try {
       const res = await fetch('/api/audit', {
@@ -136,6 +138,16 @@ export default function Home() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const domainQuery = params.get('domain');
+      if (domainQuery) {
+        handleAudit(domainQuery);
+      }
+    }
+  }, []);
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
@@ -297,7 +309,7 @@ export default function Home() {
         {/* Diagnostic Input Bar */}
         <div className="max-w-2xl w-full mx-auto">
           <form
-            onSubmit={handleAudit}
+            onSubmit={(e) => handleAudit(undefined, e)}
             className="relative flex flex-col sm:flex-row items-stretch gap-2.5 p-2 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-2xl shadow-emerald-950/20 focus-within:border-emerald-500/60 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all"
           >
             <div className="relative flex-1 flex items-center pl-3">
