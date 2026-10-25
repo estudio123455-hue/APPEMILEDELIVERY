@@ -173,11 +173,11 @@ export default function PrintableAuditReport({ report }: PrintableAuditReportPro
               <div>
                 <strong>Calificador:</strong> {report.spf.qualifier || 'N/A'}
               </div>
-              <div className="mt-1">
-                <strong>Registro Detectado:</strong>
-                <pre className="font-mono text-[9px] bg-slate-100 p-1.5 rounded border border-slate-200 mt-0.5 break-all whitespace-pre-wrap text-slate-800">
-                  {report.spf.raw || 'No se encontró registro TXT v=spf1'}
-                </pre>
+              <div className="mt-1.5">
+                <strong className="block mb-1 text-slate-700">Registro Detectado (Host @):</strong>
+                <div className="bg-slate-50 border border-slate-200 rounded p-2 font-mono text-xs text-slate-800 break-all whitespace-pre-wrap select-all">
+                  <code>{report.spf.raw || 'No se encontró registro TXT v=spf1'}</code>
+                </div>
               </div>
             </div>
           </div>
@@ -213,11 +213,11 @@ export default function PrintableAuditReport({ report }: PrintableAuditReportPro
                 <strong>Reportes (rua):</strong>{' '}
                 {report.dmarc.rua.length > 0 ? report.dmarc.rua.join(', ') : 'Ninguno'}
               </div>
-              <div className="mt-1">
-                <strong>Registro Detectado (_dmarc):</strong>
-                <pre className="font-mono text-[9px] bg-slate-100 p-1.5 rounded border border-slate-200 mt-0.5 break-all whitespace-pre-wrap text-slate-800">
-                  {report.dmarc.raw || 'No se encontró registro TXT en _dmarc'}
-                </pre>
+              <div className="mt-1.5">
+                <strong className="block mb-1 text-slate-700">Registro Detectado (Host _dmarc):</strong>
+                <div className="bg-slate-50 border border-slate-200 rounded p-2 font-mono text-xs text-slate-800 break-all whitespace-pre-wrap select-all">
+                  <code>{report.dmarc.raw || 'No se encontró registro TXT en _dmarc'}</code>
+                </div>
               </div>
             </div>
           </div>
@@ -250,6 +250,27 @@ export default function PrintableAuditReport({ report }: PrintableAuditReportPro
                   ? `${report.dkim.records.length} registro(s) encontrado(s)`
                   : 'No se detectaron claves en los selectores comunes.'}
               </div>
+              <div className="mt-1.5">
+                <strong className="block mb-1 text-slate-700">Registros de Clave Pública DKIM:</strong>
+                {report.dkim.records.length > 0 ? (
+                  <div className="flex flex-col gap-1.5">
+                    {report.dkim.records.map((rec, i) => (
+                      <div key={i} className="flex flex-col gap-0.5">
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          Selector: {rec.selector}._domainkey
+                        </span>
+                        <div className="bg-slate-50 border border-slate-200 rounded p-2 font-mono text-xs text-slate-800 break-all whitespace-pre-wrap select-all">
+                          <code>{rec.raw || rec.publicKey || 'Clave pública detectada'}</code>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 border border-slate-200 rounded p-2 font-mono text-xs text-slate-800 break-all whitespace-pre-wrap select-all">
+                    <code>No se detectaron registros en los selectores comunes analizados.</code>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -272,14 +293,18 @@ export default function PrintableAuditReport({ report }: PrintableAuditReportPro
             </div>
             <div className="text-[11px] text-slate-600 space-y-1">
               <div>
-                <strong>Servidores MX:</strong>{' '}
-                {report.mx.records.length > 0
-                  ? report.mx.records.map((r) => `${r.exchange} (p:${r.priority})`).join(', ')
-                  : 'Ninguno configurado.'}
-              </div>
-              <div>
                 <strong>BIMI (Identidad Visual):</strong>{' '}
                 {report.bimi.isValid ? 'Configurado con logotipo' : 'No configurado'}
+              </div>
+              <div className="mt-1.5">
+                <strong className="block mb-1 text-slate-700">Registros MX Detectados:</strong>
+                <div className="bg-slate-50 border border-slate-200 rounded p-2 font-mono text-xs text-slate-800 break-all whitespace-pre-wrap select-all">
+                  <code>
+                    {report.mx.records.length > 0
+                      ? report.mx.records.map((r) => `${r.priority} ${r.exchange}`).join('\n')
+                      : 'Ningún servidor de correo MX detectado.'}
+                  </code>
+                </div>
               </div>
             </div>
           </div>
