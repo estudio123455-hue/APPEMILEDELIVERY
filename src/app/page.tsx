@@ -8,6 +8,7 @@ import type { DomainAuditReport, Severity } from '@/lib/dns/types';
 import { createClient } from '@/utils/supabase/client';
 import DnsFixAssistant from '@/components/audit/DnsFixAssistant';
 import type { User } from '@supabase/supabase-js';
+import type { Json } from '@/types/database';
 
 export default function Home() {
   const [domainInput, setDomainInput] = useState('');
@@ -16,6 +17,8 @@ export default function Home() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isSavingDomain, setIsSavingDomain] = useState(false);
+  const [saveDomainFeedback, setSaveDomainFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -39,6 +42,47 @@ export default function Home() {
     const supabase = createClient();
     await supabase.auth.signOut();
     setUser(null);
+  };
+
+  const handleSaveDomain = async () => {
+    if (!user || !report) return;
+    setIsSavingDomain(true);
+    setSaveDomainFeedback(null);
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from('domain_audits').insert({
+        user_id: user.id,
+        domain: report.domain,
+        score: report.score,
+        status: report.status,
+        spf_valid: report.spf.isValid,
+        dmarc_valid: report.dmarc.isValid,
+        dkim_valid: report.dkim.found,
+        mx_valid: report.mx.isValid,
+        bimi_valid: report.bimi.isValid,
+        critical_count: report.summary.criticalCount,
+        warning_count: report.summary.warningCount,
+        issues: report.issues as unknown as Json,
+        raw_report: report as unknown as Json,
+        created_at: new Date().toISOString(),
+      });
+
+      if (error) throw error;
+
+      setSaveDomainFeedback('✓ Dominio guardado en tu panel');
+      setTimeout(() => {
+        setSaveDomainFeedback(null);
+      }, 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar el dominio.';
+      setSaveDomainFeedback(`Error: ${msg}`);
+      setTimeout(() => {
+        setSaveDomainFeedback(null);
+      }, 4000);
+    } finally {
+      setIsSavingDomain(false);
+    }
   };
 
   const cleanDomainForSubmit = (input: string): string => {
@@ -458,6 +502,48 @@ export default function Home() {
                       timeStyle: 'short',
                     })}
                   </p>
+
+                  {/* Botón Guardar dominio para monitoreo (usuarios autenticados) */}
+                  {user && (
+                    <div className="pt-2 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleSaveDomain}
+                        disabled={isSavingDomain}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition active:scale-[0.98] disabled:opacity-50"
+                      >
+                        {isSavingDomain ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                            <span>Guardando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              className="w-3.5 h-3.5 text-emerald-400"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
+                              />
+                            </svg>
+                            <span>Guardar dominio para monitoreo</span>
+                          </>
+                        )}
+                      </button>
+
+                      {saveDomainFeedback && (
+                        <span className="text-xs font-medium text-emerald-400 animate-fade-in flex items-center gap-1">
+                          {saveDomainFeedback}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -491,6 +577,7 @@ export default function Home() {
                 hasSpf={report.spf.isValid && report.spf.errors.length === 0}
                 hasDmarc={report.dmarc.isValid && report.dmarc.policy !== 'none' && report.dmarc.errors.length === 0}
                 userEmail={user?.email}
+                onAuditUpdate={(newReport) => setReport(newReport)}
               />
             )}
 
@@ -874,6 +961,30 @@ export default function Home() {
                     </>
                   )}
                 </button>
+
+                {user && (
+                  <button
+                    type="button"
+                    onClick={handleSaveDomain}
+                    disabled={isSavingDomain}
+                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+                  >
+                    <svg
+                      className="w-3.5 h-3.5 text-emerald-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
+                      />
+                    </svg>
+                    <span>Guardar dominio para monitoreo</span>
+                  </button>
+                )}
 
                 <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
                   <svg

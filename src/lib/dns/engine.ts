@@ -19,18 +19,37 @@ const DNS_TIMEOUT_MS = 3500;
  * Executes a comprehensive DNS deliverability and security audit for a given domain.
  * Evaluates SPF, DMARC, DKIM, MX, and BIMI records natively using node:dns/promises in parallel.
  */
-export async function executeDomainAudit(inputDomain: string): Promise<DomainAuditReport> {
+export async function executeDomainAudit(
+  inputDomain: string,
+  options?: { forceRefresh?: boolean }
+): Promise<DomainAuditReport> {
   const domain = sanitizeDomain(inputDomain);
 
   if (!domain || !domain.includes('.')) {
     throw new Error(`Dominio inválido o malformado: "${inputDomain}"`);
   }
 
+  // Si se solicita forceRefresh, consultar directamente a resolvers globales para omitir caché local
+  let dnsResolver: {
+    resolveTxt: (hostname: string) => Promise<string[][]>;
+    resolveMx: (hostname: string) => Promise<NodeMxRecord[]>;
+  } = dns;
+
+  if (options?.forceRefresh) {
+    try {
+      const freshResolver = new dns.Resolver();
+      freshResolver.setServers(['1.1.1.1', '8.8.8.8', '8.8.4.4']);
+      dnsResolver = freshResolver;
+    } catch {
+      dnsResolver = dns;
+    }
+  }
+
   // Safe DNS TXT resolver with timeout and standard error silencing (ENOTFOUND/ENODATA)
   const safeResolveTxt = async (lookupName: string): Promise<string[][]> => {
     try {
       return await withTimeout(
-        dns.resolveTxt(lookupName),
+        dnsResolver.resolveTxt(lookupName),
         DNS_TIMEOUT_MS,
         `Tiempo de espera agotado al consultar TXT para ${lookupName}`
       );
@@ -47,7 +66,7 @@ export async function executeDomainAudit(inputDomain: string): Promise<DomainAud
   const safeResolveMx = async (lookupName: string): Promise<NodeMxRecord[]> => {
     try {
       return await withTimeout(
-        dns.resolveMx(lookupName),
+        dnsResolver.resolveMx(lookupName),
         DNS_TIMEOUT_MS,
         `Tiempo de espera agotado al consultar MX para ${lookupName}`
       );

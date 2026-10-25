@@ -69,12 +69,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const report = await executeDomainAudit(validation.data.domain);
+    const isForceRefresh = Boolean(validation.data.forceRefresh);
+    const report = await executeDomainAudit(validation.data.domain, {
+      forceRefresh: isForceRefresh,
+    });
+
+    const cacheHeader = isForceRefresh
+      ? 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
+      : 'public, s-maxage=60, stale-while-revalidate=300';
 
     return NextResponse.json(report, {
       status: 200,
       headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        'Cache-Control': cacheHeader,
         'X-RateLimit-Limit': '10',
         'X-RateLimit-Remaining': String(remaining),
       },

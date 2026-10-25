@@ -110,6 +110,7 @@ export type DomainAuditInput = z.infer<typeof DomainAuditSchema>;
 
 export const AuditRequestSchema = z.object({
   domain: DomainAuditSchema,
+  forceRefresh: z.boolean().optional(),
 });
 
 export type AuditRequestInput = z.infer<typeof AuditRequestSchema>;
