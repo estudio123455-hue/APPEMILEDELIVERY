@@ -7,6 +7,7 @@ import Link from 'next/link';
 import type { DomainAuditReport, Severity } from '@/lib/dns/types';
 import { createClient } from '@/utils/supabase/client';
 import DnsFixAssistant from '@/components/audit/DnsFixAssistant';
+import Navbar from '@/components/navigation/Navbar';
 import type { User } from '@supabase/supabase-js';
 import type { Json } from '@/types/database';
 
@@ -184,106 +185,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
-      {/* Top Header */}
-      <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <svg
-                className="w-5 h-5 text-slate-950 font-bold"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
-                />
-              </svg>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="font-extrabold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-50 via-slate-200 to-emerald-400">
-                DeliverabilityGuard
-              </span>
-              <span className="hidden sm:inline-block text-[11px] font-mono tracking-wider text-emerald-400/90 uppercase px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
-                Autoservicio B2B
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden lg:flex items-center gap-2 text-xs text-slate-400 font-mono mr-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span>Motor DNS Nativo RFC</span>
-            </div>
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 hidden sm:inline-flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              100% Gratuito & Abierto
-            </span>
-            <Link
-              href="/tools/generator"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold rounded-lg border border-slate-800 hover:border-slate-700 transition"
-              title="Generador Guiado de Registros SPF y DMARC"
-            >
-              <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
-              </svg>
-              <span>Generador DNS</span>
-            </Link>
-
-            {user ? (
-              <div className="flex items-center gap-2 sm:gap-3 ml-1">
-                <span className="text-xs font-mono text-emerald-400 hidden sm:inline truncate max-w-[160px]">
-                  {user.user_metadata?.full_name || user.email}
-                </span>
-                <Link
-                  href="/dashboard"
-                  className="px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-lg border border-emerald-500/30 transition flex items-center gap-1.5"
-                  title="Centro de Monitoreo de Dominios"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-                  </svg>
-                  <span>Dashboard</span>
-                </Link>
-                <Link
-                  href="/settings/security"
-                  className="px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium rounded-lg border border-slate-700/80 transition flex items-center gap-1.5"
-                  title="Configurar Autenticación en Dos Factores"
-                >
-                  <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  <span>2FA</span>
-                </Link>
-                <button
-                  onClick={handleSignOut}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg border border-slate-700 transition"
-                >
-                  Cerrar sesión
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 sm:gap-3 ml-1">
-                <Link
-                  href="/login"
-                  className="text-xs font-medium text-slate-300 hover:text-white transition"
-                >
-                  Iniciar sesión
-                </Link>
-                <Link
-                  href="/register"
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition"
-                >
-                  Registrarse
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      {/* Top Navbar */}
+      <Navbar initialUser={user} onSignOut={handleSignOut} />
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12 flex flex-col gap-12">
