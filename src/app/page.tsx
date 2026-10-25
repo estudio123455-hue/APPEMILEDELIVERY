@@ -774,6 +774,104 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Cifrado en Tránsito (STARTTLS & Certificados SSL/TLS) */}
+            <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
+                      report.tls.supported && report.tls.certValid
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : report.tls.supported
+                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    }`}
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                      Cifrado en Tránsito (STARTTLS & SSL/TLS)
+                      <span
+                        className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold border ${
+                          report.tls.supported && report.tls.certValid
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : report.tls.supported
+                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }`}
+                      >
+                        {report.tls.supported
+                          ? `STARTTLS Activo (${report.tls.version || 'TLSv1.2+'})`
+                          : 'Sin STARTTLS'}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Protección contra espionaje y ataques Man-in-the-Middle (MitM) en el servidor de correo.
+                    </p>
+                  </div>
+                </div>
+
+                <span className="text-xs text-slate-400 font-mono">
+                  Protocolo de Encriptación de Enrutamiento
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                {/* 1. Host MX */}
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex flex-col justify-between gap-1.5">
+                  <span className="text-[10px] uppercase font-mono text-slate-500 font-bold">Servidor MX Evaluado</span>
+                  <span className="text-xs font-mono font-bold text-slate-200 truncate" title={report.tls.mxHost}>
+                    {report.tls.mxHost}
+                  </span>
+                  <span className="text-[10px] text-slate-500">Host de recepción principal</span>
+                </div>
+
+                {/* 2. Protocolo */}
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex flex-col justify-between gap-1.5">
+                  <span className="text-[10px] uppercase font-mono text-slate-500 font-bold">Protocolo Negociado</span>
+                  <span className="text-xs font-mono font-bold text-emerald-400">
+                    {report.tls.version || (report.tls.supported ? 'TLSv1.2+' : 'Sin Cifrado')}
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    {report.tls.supported ? 'Cifrado robusto en tránsito' : 'Texto plano vulnerable'}
+                  </span>
+                </div>
+
+                {/* 3. Emisor Certificado */}
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex flex-col justify-between gap-1.5">
+                  <span className="text-[10px] uppercase font-mono text-slate-500 font-bold">Autoridad Certificadora</span>
+                  <span className="text-xs font-semibold text-slate-200 truncate" title={report.tls.issuer || 'N/A'}>
+                    {report.tls.issuer || (report.tls.supported ? 'CA Reconocida' : 'N/A')}
+                  </span>
+                  <span className="text-[10px] text-slate-500">Entidad emisora del certificado</span>
+                </div>
+
+                {/* 4. Validez y Expiración */}
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex flex-col justify-between gap-1.5">
+                  <span className="text-[10px] uppercase font-mono text-slate-500 font-bold">Vigencia del Certificado</span>
+                  <span className={`text-xs font-bold ${
+                    report.tls.certValid ? 'text-emerald-400' : 'text-amber-400'
+                  }`}>
+                    {report.tls.expiresInDays !== undefined
+                      ? `${report.tls.expiresInDays} días restantes`
+                      : report.tls.certValid
+                      ? 'Certificado Válido'
+                      : 'No validado'}
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    {report.tls.certValid ? 'Certificado vigente' : 'Requiere revisión'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Issues and Remediation List */}
             <div className="flex flex-col gap-4">
               <h3 className="text-lg font-bold text-slate-200 flex items-center gap-2">

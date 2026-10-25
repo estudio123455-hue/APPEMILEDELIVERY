@@ -357,6 +357,54 @@ export default function PrintableAuditReport({ report }: PrintableAuditReportPro
             ))}
           </div>
         </div>
+
+        {/* Verificación de Cifrado en Tránsito (STARTTLS & SSL/TLS de Servidores MX) */}
+        <div className="mt-3 border border-slate-200 rounded-lg p-3 bg-white">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-bold text-slate-900 flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 text-slate-700" />
+              Cifrado en Tránsito y Certificados (STARTTLS & SSL/TLS)
+            </span>
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                report.tls.supported && report.tls.certValid
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                  : report.tls.supported
+                  ? 'bg-amber-50 text-amber-800 border-amber-300'
+                  : 'bg-rose-50 text-rose-800 border-rose-300'
+              }`}
+            >
+              {report.tls.supported
+                ? `STARTTLS ACTIVO (${report.tls.version || 'TLSv1.2+'})`
+                : 'SIN STARTTLS (TEXTO PLANO)'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-700">
+            <div className="p-2 rounded bg-slate-50 border border-slate-200">
+              <span className="text-slate-500 block text-[10px] font-bold">Servidor MX Evaluado:</span>
+              <span className="font-mono font-semibold text-slate-900">{report.tls.mxHost}</span>
+            </div>
+            <div className="p-2 rounded bg-slate-50 border border-slate-200">
+              <span className="text-slate-500 block text-[10px] font-bold">Protocolo Negociado:</span>
+              <span className="font-mono font-semibold text-slate-900">{report.tls.version || 'No disponible'}</span>
+            </div>
+            <div className="p-2 rounded bg-slate-50 border border-slate-200">
+              <span className="text-slate-500 block text-[10px] font-bold">Emisor del Certificado (CA):</span>
+              <span className="font-semibold text-slate-900">{report.tls.issuer || 'Desconocido'}</span>
+            </div>
+            <div className="p-2 rounded bg-slate-50 border border-slate-200">
+              <span className="text-slate-500 block text-[10px] font-bold">Vigencia del Certificado:</span>
+              <span className="font-semibold text-slate-900">
+                {report.tls.expiresInDays !== undefined
+                  ? `${report.tls.expiresInDays} días restantes`
+                  : report.tls.certValid
+                  ? 'Certificado Válido'
+                  : 'No validado'}
+              </span>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* ========================================================= */}

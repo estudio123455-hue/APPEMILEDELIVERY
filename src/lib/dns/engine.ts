@@ -10,9 +10,11 @@ import {
   DomainAuditStatus,
   MxAuditResult,
   MxRecordItem,
+  TlsAuditResult,
 } from './types';
 import { sanitizeDomain, withTimeout } from './utils';
 import { parseBimi, parseDkimSelector, parseDmarc, parseSpf } from './parsers';
+import { verifyMailServerTls } from './tls-check';
 
 const COMMON_DKIM_SELECTORS = ['google', 'selector1', 's1', 'k1'] as const;
 const DNSBL_PROVIDERS = [
@@ -281,7 +283,40 @@ export async function executeDomainAudit(
     });
   }
 
-  // 8. Aggregate all issues
+  // 8. Verify In-Transit TLS & STARTTLS Encryption
+  let tlsResult: TlsAuditResult = {
+    mxHost: mxRecords[0]?.exchange || 'Sin servidores MX',
+    supported: false,
+    certValid: false,
+  };
+
+  const tlsIssues: AuditIssue[] = [];
+  if (mxRecords.length > 0) {
+    const primaryMx = mxRecords[0].exchange;
+    tlsResult = await verifyMailServerTls(primaryMx);
+
+    if (!tlsResult.supported) {
+      tlsIssues.push({
+        id: 'tls-unsupported',
+        category: 'TLS',
+        severity: 'WARNING',
+        title: 'Cifrado en tránsito STARTTLS no soportado en servidor MX',
+        description: `El servidor MX principal (${tlsResult.mxHost}) no tiene activo el protocolo STARTTLS o no acepta conexiones seguras cifradas. Los mensajes podrían viajar en texto plano vulnerable a espionaje o interceptación en tránsito.`,
+        recommendation: 'Habilita STARTTLS con cifrado TLS 1.2 o TLS 1.3 en la configuración de tu servidor de correo entrante.',
+      });
+    } else if (tlsResult.certValid === false) {
+      tlsIssues.push({
+        id: 'tls-cert-invalid',
+        category: 'TLS',
+        severity: 'WARNING',
+        title: 'Certificado TLS no válido o caducado en servidor MX',
+        description: `El certificado de seguridad TLS presentado por el host (${tlsResult.mxHost}) no pudo ser validado por una Autoridad de Certificación reconocida o está próximo a expirar.`,
+        recommendation: 'Instala o renueva el certificado digital SSL/TLS de tu servidor de correo.',
+      });
+    }
+  }
+
+  // 9. Aggregate all issues
   const allIssues: AuditIssue[] = [
     ...spfIssues,
     ...dmarcIssues,
@@ -289,9 +324,10 @@ export async function executeDomainAudit(
     ...mxIssues,
     ...bimiIssues,
     ...blacklistIssues,
+    ...tlsIssues,
   ];
 
-  // 9. Calculate score & summary
+  // 10. Calculate score & summary
   let criticalCount = 0;
   let warningCount = 0;
   let infoCount = 0;
@@ -336,5 +372,6 @@ export async function executeDomainAudit(
     mx: mxResult,
     bimi: bimiRecord,
     blacklists: blacklistResult,
+    tls: tlsResult,
   };
 }

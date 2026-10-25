@@ -1,6 +1,6 @@
 export type Severity = 'CRITICAL' | 'WARNING' | 'INFO';
 
-export type IssueCategory = 'SPF' | 'DMARC' | 'DKIM' | 'MX' | 'BIMI' | 'BLACKLIST' | 'GENERAL';
+export type IssueCategory = 'SPF' | 'DMARC' | 'DKIM' | 'MX' | 'BIMI' | 'BLACKLIST' | 'TLS' | 'GENERAL';
 
 export interface AuditIssue {
   id: string;
@@ -91,6 +91,15 @@ export interface BlacklistAuditResult {
   details: BlacklistDetail[];
 }
 
+export interface TlsAuditResult {
+  mxHost: string;
+  supported: boolean;
+  version?: string;
+  certValid?: boolean;
+  issuer?: string;
+  expiresInDays?: number;
+}
+
 export type DomainAuditStatus = 'EXCELLENT' | 'GOOD' | 'NEEDS_ATTENTION' | 'CRITICAL';
 
 export interface AuditSummary {
@@ -112,4 +121,5 @@ export interface DomainAuditReport {
   mx: MxAuditResult;
   bimi: BimiRecord;
   blacklists: BlacklistAuditResult;
+  tls: TlsAuditResult;
 }
