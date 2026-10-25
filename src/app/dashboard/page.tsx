@@ -21,7 +21,7 @@ function DashboardContent() {
   const [userId, setUserId] = useState<string | null>(null);
   const [domains, setDomains] = useState<DomainAuditRow[]>([]);
 
-  // Estados de interacción
+  // Estados de búsqueda, filtros y acciones
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [recheckingDomain, setRecheckingDomain] = useState<string | null>(null);
@@ -62,7 +62,7 @@ function DashboardContent() {
         throw error;
       }
 
-      // Agrupar por dominio para mostrar el último análisis registrado de cada uno
+      // Agrupar por dominio para mostrar siempre el análisis más reciente
       const domainMap = new Map<string, DomainAuditRow>();
       (data || []).forEach((row) => {
         const normalized = row.domain.toLowerCase().trim();
@@ -129,7 +129,7 @@ function DashboardContent() {
         throw insertError;
       }
 
-      // Actualizar la lista en el estado local (refresca fila y métricas superiores)
+      // Actualizar el estado local (actualiza la fila y recalcula las tarjetas métricas)
       setDomains((prev) =>
         prev.map((d) => (d.domain.toLowerCase() === domainName.toLowerCase() ? newRow : d))
       );
@@ -178,7 +178,7 @@ function DashboardContent() {
     }
   };
 
-  // Métricas superiores
+  // Métricas superiores reactivas
   const totalCount = domains.length;
   const protectedCount = useMemo(
     () => domains.filter((d) => d.spf_valid && d.dmarc_valid && d.score >= 80).length,
@@ -206,7 +206,7 @@ function DashboardContent() {
     });
   }, [domains, searchTerm, activeFilter]);
 
-  // Formato de tiempo relativo en español
+  // Formato amigable de tiempo relativo en español
   const formatRelativeTime = (dateString: string): string => {
     try {
       const date = new Date(dateString);
@@ -232,6 +232,7 @@ function DashboardContent() {
     }
   };
 
+  // Color de Score dinámico
   const getScoreBadge = (score: number) => {
     if (score >= 80) {
       return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
@@ -244,7 +245,7 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
-      {/* Header / Navbar */}
+      {/* Navbar Superior */}
       <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
@@ -290,7 +291,7 @@ function DashboardContent() {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Container */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-10 flex flex-col gap-8">
         {/* Encabezado Principal */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
@@ -322,7 +323,7 @@ function DashboardContent() {
           )}
         </div>
 
-        {/* Notificación de Feedback */}
+        {/* Notificación de Feedback Dinámica */}
         {feedbackMsg && (
           <div
             className={`p-3.5 rounded-xl text-xs flex items-center justify-between shadow-sm animate-fade-in ${
@@ -344,7 +345,7 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Barra de Estadísticas Rápidas (3 tarjetas) */}
+        {/* Barra de Estadísticas Rápidas (3 tarjetas arriba) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Total */}
           <button
@@ -421,7 +422,7 @@ function DashboardContent() {
 
         {/* 1. Barra de Filtros y Búsqueda en Vivo */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/40 p-3 rounded-2xl border border-slate-800/80">
-          {/* Input de Búsqueda */}
+          {/* Input de Búsqueda interactivo con SVG */}
           <div className="relative flex-1">
             <svg
               className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -451,7 +452,7 @@ function DashboardContent() {
             )}
           </div>
 
-          {/* Filtros Rápidos (Pills) */}
+          {/* Filtros Rápidos (Pills / Tabs) */}
           <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
             <button
               type="button"
@@ -500,14 +501,14 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* Lista de Dominios */}
+        {/* 3. Lista de Dominios */}
         {loading ? (
           <div className="p-16 rounded-3xl bg-slate-900/40 border border-slate-800 text-center flex flex-col items-center justify-center gap-3">
             <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
             <span className="text-sm text-slate-400">Cargando tus dominios monitoreados...</span>
           </div>
         ) : domains.length === 0 ? (
-          /* Estado Vacío Total (Sin dominios guardados aún) */
+          /* Estado Vacío Total (Sin dominios guardados) */
           <div className="p-12 sm:p-16 rounded-3xl bg-slate-900/40 border border-slate-800/80 text-center flex flex-col items-center gap-5 shadow-inner">
             <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/5">
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -537,7 +538,9 @@ function DashboardContent() {
         ) : filteredDomains.length === 0 ? (
           /* Estado Vacío de Búsqueda / Filtro */
           <div className="p-12 rounded-3xl bg-slate-900/40 border border-slate-800 text-center flex flex-col items-center gap-3">
-            <span className="text-2xl">🔍</span>
+            <div className="w-12 h-12 rounded-2xl bg-slate-800/80 border border-slate-700/80 text-slate-400 flex items-center justify-center text-xl">
+              🔍
+            </div>
             <h3 className="text-sm font-bold text-slate-200">
               No se encontraron dominios que coincidan con la búsqueda
             </h3>
@@ -563,7 +566,7 @@ function DashboardContent() {
                 Mostrando <strong className="text-slate-200">{filteredDomains.length}</strong> de{' '}
                 {totalCount} {totalCount === 1 ? 'dominio' : 'dominios'}
               </span>
-              <span className="hidden sm:inline">Haz clic en &apos;Ver detalles&apos; para abrir el Asistente de Reparación</span>
+              <span className="hidden sm:inline">Haz clic en &apos;Diagnóstico&apos; para abrir el Asistente de Reparación</span>
             </div>
 
             <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/50 shadow-xl">
@@ -644,7 +647,7 @@ function DashboardContent() {
                             <span
                               className={`px-2 py-0.5 rounded text-[10px] font-bold border transition ${
                                 d.mx_valid
-                                  ? 'bg-slate-800 text-slate-300 border-slate-700/80'
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                                   : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                               }`}
                             >
@@ -661,7 +664,7 @@ function DashboardContent() {
                         {/* Acciones */}
                         <td className="py-4 px-4 text-right">
                           <div className="inline-flex items-center gap-1.5">
-                            {/* Botón 1: Comprobar ahora */}
+                            {/* Botón 1: Comprobar ahora (Re-scan en 1 clic) */}
                             <button
                               type="button"
                               disabled={isRechecking}
@@ -694,7 +697,7 @@ function DashboardContent() {
                               )}
                             </button>
 
-                            {/* Botón 2: Ver detalles */}
+                            {/* Botón 2: Diagnóstico (Redirige a la auditoría completa) */}
                             <Link
                               href={`/?domain=${encodeURIComponent(d.domain)}`}
                               className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition flex items-center gap-1"
@@ -704,7 +707,7 @@ function DashboardContent() {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               </svg>
-                              <span className="hidden md:inline">Detalles</span>
+                              <span className="hidden md:inline">Diagnóstico</span>
                             </Link>
 
                             {/* Botón 3: Eliminar */}
@@ -730,7 +733,7 @@ function DashboardContent() {
         )}
       </main>
 
-      {/* Modal de Confirmación Visual para Eliminar */}
+      {/* Modal / Diálogo Elegante de Confirmación para Eliminar */}
       {domainToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col gap-5">
