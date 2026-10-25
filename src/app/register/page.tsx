@@ -36,7 +36,7 @@ export default function RegisterPage() {
           data: {
             full_name: formData.name,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/setup-2fa`,
         },
       });
 
@@ -45,11 +45,12 @@ export default function RegisterPage() {
       }
 
       if (data.session) {
-        router.push("/");
+        // Redirigir de inmediato al paso obligatorio de configuración 2FA
+        router.push("/setup-2fa");
         router.refresh();
       } else {
         setSuccessMsg(
-          "¡Cuenta creada con éxito! Hemos enviado un enlace de confirmación a tu correo para activar tu cuenta."
+          "¡Cuenta creada con éxito! Revisa tu correo electrónico para confirmar tu cuenta. Tras confirmarla, serás dirigido a configurar obligatoriamente tu aplicación Authenticator (2FA)."
         );
       }
     } catch (err: unknown) {

@@ -31,8 +31,41 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // Revalidate authentication status with Supabase Auth
-  await supabase.auth.getUser();
+  const pathname = request.nextUrl.pathname;
+
+  // Paths exempt from mandatory 2FA redirection
+  const isAuthExemptPath =
+    pathname.startsWith('/setup-2fa') ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/auth') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname.includes('.');
+
+  // 1. Revalidar usuario autenticado
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // 2. Si el usuario está autenticado en una ruta protegida, verificar si tiene 2FA obligatorio activo
+  if (user && !isAuthExemptPath) {
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const hasVerifiedTotp = factors?.totp?.some((f) => f.status === 'verified');
+
+    if (!hasVerifiedTotp) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = '/setup-2fa';
+      const redirectResponse = NextResponse.redirect(redirectUrl);
+
+      // Preservar cookies de sesión en la redirección
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value);
+      });
+
+      return redirectResponse;
+    }
+  }
 
   return supabaseResponse;
 }

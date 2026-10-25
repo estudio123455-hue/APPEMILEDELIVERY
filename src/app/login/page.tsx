@@ -34,7 +34,18 @@ export default function LoginPage() {
         throw signInError;
       }
 
-      // Comprobar el nivel de aseguramiento de sesión (AAL)
+      // Comprobar factores 2FA obligatorios del usuario
+      const factors = await supabase.auth.mfa.listFactors();
+      const verifiedFactor = factors.data?.totp?.find((f) => f.status === "verified");
+
+      // Si NO tiene factor TOTP verificado, dirigir obligatoriamente a la configuración
+      if (!verifiedFactor) {
+        router.push("/setup-2fa");
+        router.refresh();
+        return;
+      }
+
+      // Si tiene factor verificado, comprobar si requiere resolver el reto 2FA (AAL2)
       const { data: mfaData, error: mfaError } =
         await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
 
@@ -43,15 +54,9 @@ export default function LoginPage() {
       }
 
       if (mfaData.nextLevel === "aal2" && mfaData.currentLevel !== "aal2") {
-        // El usuario requiere verificación con factor 2FA
-        const factors = await supabase.auth.mfa.listFactors();
-        const verifiedFactor = factors.data?.totp.find((f) => f.status === "verified");
-
-        if (verifiedFactor) {
-          setTotpFactorId(verifiedFactor.id);
-          setMfaRequired(true);
-          return;
-        }
+        setTotpFactorId(verifiedFactor.id);
+        setMfaRequired(true);
+        return;
       }
 
       if (data.user) {
