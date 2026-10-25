@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { DomainAuditReport, Severity } from '@/lib/dns/types';
+import { createClient } from '@/utils/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
 export default function Home() {
   const [domainInput, setDomainInput] = useState('');
@@ -10,6 +12,30 @@ export default function Home() {
   const [report, setReport] = useState<DomainAuditReport | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  const supabase = createClient();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
 
   const cleanDomainForSubmit = (input: string): string => {
     return input
@@ -176,20 +202,34 @@ export default function Home() {
             >
               Planes Pro
             </button>
-            <div className="flex items-center gap-2 sm:gap-3 ml-1">
-              <Link
-                href="/login"
-                className="text-xs font-medium text-slate-300 hover:text-white transition"
-              >
-                Iniciar sesión
-              </Link>
-              <Link
-                href="/register"
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition"
-              >
-                Registrarse
-              </Link>
-            </div>
+            {user ? (
+              <div className="flex items-center gap-2 sm:gap-3 ml-1">
+                <span className="text-xs font-mono text-emerald-400 hidden sm:inline truncate max-w-[160px]">
+                  {user.user_metadata?.full_name || user.email}
+                </span>
+                <button
+                  onClick={handleSignOut}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg border border-slate-700 transition"
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 sm:gap-3 ml-1">
+                <Link
+                  href="/login"
+                  className="text-xs font-medium text-slate-300 hover:text-white transition"
+                >
+                  Iniciar sesión
+                </Link>
+                <Link
+                  href="/register"
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition"
+                >
+                  Registrarse
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </header>

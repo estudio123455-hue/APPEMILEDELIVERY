@@ -1,34 +1,48 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { createClient } from "@/utils/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
+  const supabase = createClient();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setError(null);
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (res?.error) {
-      setError("Credenciales inválidas. Verifica tu correo y contraseña.");
+      if (signInError) {
+        throw signInError;
+      }
+
+      if (data.user) {
+        router.push("/");
+        router.refresh();
+      }
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message === "Invalid login credentials"
+            ? "Credenciales inválidas. Verifica tu correo y contraseña."
+            : err.message
+          : "Error inesperado al iniciar sesión.";
+      setError(message);
+    } finally {
       setLoading(false);
-    } else {
-      router.push("/");
-      router.refresh();
     }
   };
 
