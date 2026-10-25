@@ -7,7 +7,9 @@ import Link from 'next/link';
 import type { DomainAuditReport, Severity } from '@/lib/dns/types';
 import { createClient } from '@/utils/supabase/client';
 import DnsFixAssistant from '@/components/audit/DnsFixAssistant';
+import PrintableAuditReport from '@/components/audit/PrintableAuditReport';
 import Navbar from '@/components/navigation/Navbar';
+import { FileDown } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import type { Json } from '@/types/database';
 
@@ -189,9 +191,9 @@ export default function Home() {
       <Navbar initialUser={user} onSignOut={handleSignOut} />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12 flex flex-col gap-12">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12 flex flex-col gap-12 print:p-0 print:m-0 print:max-w-none">
         {/* Hero Section */}
-        <div className="text-center max-w-3xl mx-auto flex flex-col items-center gap-4">
+        <div className="text-center max-w-3xl mx-auto flex flex-col items-center gap-4 print:hidden">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
             <svg className="w-3.5 h-3.5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
               <path
@@ -221,7 +223,7 @@ export default function Home() {
         </div>
 
         {/* Diagnostic Input Bar */}
-        <div className="max-w-2xl w-full mx-auto">
+        <div className="max-w-2xl w-full mx-auto print:hidden">
           <form
             onSubmit={(e) => handleAudit(undefined, e)}
             className="relative flex flex-col sm:flex-row items-stretch gap-2.5 p-2 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-2xl shadow-emerald-950/20 focus-within:border-emerald-500/60 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all"
@@ -351,87 +353,105 @@ export default function Home() {
 
         {/* Dynamic Results Section */}
         {report && (
-          <div className="flex flex-col gap-10 animate-fade-in">
-            {/* Score & Summary Card */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
-                {/* Score Circular Badge */}
-                <div
-                  className={`w-28 h-28 rounded-2xl border-2 flex flex-col items-center justify-center p-3 shadow-inner ${getScoreColor(
-                    report.score
-                  )}`}
-                >
-                  <span className="text-4xl font-black tracking-tight">{report.score}</span>
-                  <span className="text-[10px] font-mono uppercase tracking-wider opacity-80">
-                    / 100 PTS
-                  </span>
-                </div>
+          <>
+            {/* Reporte Estilizado Listo para Impresión / Descarga PDF */}
+            <PrintableAuditReport report={report} />
 
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2 justify-center sm:justify-start">
-                    <span className="text-xs font-mono text-slate-400">Dominio auditado:</span>
-                    <span className="font-mono text-emerald-400 font-bold">{report.domain}</span>
-                  </div>
-                  <h2 className="text-2xl font-extrabold text-slate-100">
-                    Estado:{' '}
-                    <span
-                      className={
-                        report.status === 'EXCELLENT'
-                          ? 'text-emerald-400'
-                          : report.status === 'GOOD'
-                          ? 'text-lime-400'
-                          : report.status === 'NEEDS_ATTENTION'
-                          ? 'text-amber-400'
-                          : 'text-rose-400'
-                      }
-                    >
-                      {report.status === 'EXCELLENT' && 'Excelente Entregabilidad'}
-                      {report.status === 'GOOD' && 'Buena Configuración'}
-                      {report.status === 'NEEDS_ATTENTION' && 'Requiere Atención Inmediata'}
-                      {report.status === 'CRITICAL' && 'Riesgo Crítico de Spam'}
+            {/* Vista Interactiva Web (Oculta en PDF de impresión) */}
+            <div className="flex flex-col gap-10 animate-fade-in print:hidden">
+              {/* Score & Summary Card */}
+              <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+                  {/* Score Circular Badge */}
+                  <div
+                    className={`w-28 h-28 rounded-2xl border-2 flex flex-col items-center justify-center p-3 shadow-inner ${getScoreColor(
+                      report.score
+                    )}`}
+                  >
+                    <span className="text-4xl font-black tracking-tight">{report.score}</span>
+                    <span className="text-[10px] font-mono uppercase tracking-wider opacity-80">
+                      / 100 PTS
                     </span>
-                  </h2>
-                  <p className="text-xs text-slate-400">
-                    Fecha y hora:{' '}
-                    {new Date(report.timestamp).toLocaleString('es-CO', {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                    })}
-                  </p>
+                  </div>
 
-                  {/* Botón Guardar dominio para monitoreo (usuarios autenticados) */}
-                  {user && (
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2 justify-center sm:justify-start">
+                      <span className="text-xs font-mono text-slate-400">Dominio auditado:</span>
+                      <span className="font-mono text-emerald-400 font-bold">{report.domain}</span>
+                    </div>
+                    <h2 className="text-2xl font-extrabold text-slate-100">
+                      Estado:{' '}
+                      <span
+                        className={
+                          report.status === 'EXCELLENT'
+                            ? 'text-emerald-400'
+                            : report.status === 'GOOD'
+                            ? 'text-lime-400'
+                            : report.status === 'NEEDS_ATTENTION'
+                            ? 'text-amber-400'
+                            : 'text-rose-400'
+                        }
+                      >
+                        {report.status === 'EXCELLENT' && 'Excelente Entregabilidad'}
+                        {report.status === 'GOOD' && 'Buena Configuración'}
+                        {report.status === 'NEEDS_ATTENTION' && 'Requiere Atención Inmediata'}
+                        {report.status === 'CRITICAL' && 'Riesgo Crítico de Spam'}
+                      </span>
+                    </h2>
+                    <p className="text-xs text-slate-400">
+                      Fecha y hora:{' '}
+                      {new Date(report.timestamp).toLocaleString('es-CO', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
+                    </p>
+
+                    {/* Acciones del Dominio: Exportar PDF y Guardar */}
                     <div className="pt-2 flex flex-wrap items-center gap-3">
+                      {/* Botón Exportar Reporte PDF */}
                       <button
                         type="button"
-                        onClick={handleSaveDomain}
-                        disabled={isSavingDomain}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition active:scale-[0.98] disabled:opacity-50"
+                        onClick={() => window.print()}
+                        className="bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 shadow-sm active:scale-[0.98] cursor-pointer"
+                        title="Descargar o imprimir reporte técnico en formato PDF"
                       >
-                        {isSavingDomain ? (
-                          <>
-                            <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-                            <span>Guardando...</span>
-                          </>
-                        ) : (
-                          <>
-                            <svg
-                              className="w-3.5 h-3.5 text-emerald-400"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
-                              />
-                            </svg>
-                            <span>Guardar dominio para monitoreo</span>
-                          </>
-                        )}
+                        <FileDown className="w-4 h-4 text-emerald-400" />
+                        <span>Exportar Reporte PDF</span>
                       </button>
+
+                      {/* Botón Guardar dominio para monitoreo (usuarios autenticados) */}
+                      {user && (
+                        <button
+                          type="button"
+                          onClick={handleSaveDomain}
+                          disabled={isSavingDomain}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition active:scale-[0.98] disabled:opacity-50"
+                        >
+                          {isSavingDomain ? (
+                            <>
+                              <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                              <span>Guardando...</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg
+                                className="w-3.5 h-3.5 text-emerald-400"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
+                                />
+                              </svg>
+                              <span>Guardar dominio</span>
+                            </>
+                          )}
+                        </button>
+                      )}
 
                       {saveDomainFeedback && (
                         <span className="text-xs font-medium text-emerald-400 animate-fade-in flex items-center gap-1">
@@ -439,8 +459,7 @@ export default function Home() {
                         </span>
                       )}
                     </div>
-                  )}
-                </div>
+                  </div>
               </div>
 
               {/* Counters */}
@@ -896,11 +915,12 @@ export default function Home() {
               </div>
             </div>
           </div>
-        )}
+        </>
+      )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-8 mt-auto">
+      <footer className="border-t border-slate-900 bg-slate-950 py-8 mt-auto print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-mono">
           <p>© {new Date().getFullYear()} DeliverabilityGuard. Todos los derechos reservados.</p>
           <div className="flex items-center gap-4">
