@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { DomainAuditReport, Severity } from '@/lib/dns/types';
 import { createClient } from '@/utils/supabase/client';
+import DnsFixAssistant from '@/components/audit/DnsFixAssistant';
 import type { User } from '@supabase/supabase-js';
 
 export default function Home() {
@@ -482,6 +483,16 @@ export default function Home() {
                 </div>
               </div>
             </div>
+
+            {/* Asistente de Corrección Inmediata (Doctor de Entregabilidad) */}
+            {(!report.spf.isValid || !report.dmarc.isValid || report.dmarc.policy === 'none' || report.spf.errors.length > 0) && (
+              <DnsFixAssistant
+                domain={report.domain}
+                hasSpf={report.spf.isValid && report.spf.errors.length === 0}
+                hasDmarc={report.dmarc.isValid && report.dmarc.policy !== 'none' && report.dmarc.errors.length === 0}
+                userEmail={user?.email}
+              />
+            )}
 
             {/* 5 Pillars Grid */}
             <div className="flex flex-col gap-4">
