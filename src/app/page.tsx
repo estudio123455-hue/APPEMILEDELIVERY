@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import type { DomainAuditReport, Severity } from '@/lib/dns/types';
 
 export default function Home() {
@@ -162,19 +163,33 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
+            <div className="hidden lg:flex items-center gap-2 text-xs text-slate-400 font-mono mr-1">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span className="hidden md:inline">Motor DNS Nativo RFC</span>
+              <span>Motor DNS Nativo RFC</span>
             </div>
             <button
               onClick={() => {
                 const el = document.getElementById('pricing-card');
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
             >
               Planes Pro
             </button>
+            <div className="flex items-center gap-2 sm:gap-3 ml-1">
+              <Link
+                href="/login"
+                className="text-xs font-medium text-slate-300 hover:text-white transition"
+              >
+                Iniciar sesión
+              </Link>
+              <Link
+                href="/register"
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition"
+              >
+                Registrarse
+              </Link>
+            </div>
           </div>
         </div>
       </header>
