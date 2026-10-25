@@ -12,7 +12,9 @@ import {
   Menu,
   X,
   Search,
+  Briefcase,
 } from 'lucide-react';
+import SuiteSwitcher from './SuiteSwitcher';
 import { createClient } from '@/utils/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
@@ -80,9 +82,9 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
     <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-md print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* ========================================================= */}
-        {/* LADO IZQUIERDO: BRANDING LIMPIO                           */}
+        {/* LADO IZQUIERDO: BRANDING LIMPIO & SUITE SWITCHER          */}
         {/* ========================================================= */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/"
             className="flex items-center gap-2.5 group transition-transform active:scale-[0.98]"
@@ -95,11 +97,8 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             </span>
           </Link>
 
-          {/* Badge único y discreto */}
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Gratuito
-          </span>
+          {/* Suite Switcher (Selector de Productos MiPortal) */}
+          <SuiteSwitcher />
         </div>
 
         {/* ========================================================= */}
@@ -115,6 +114,13 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             }`}
           >
             Auditoría
+          </Link>
+
+          <Link
+            href="/#business-suite"
+            className="text-sm font-medium transition-colors text-slate-400 hover:text-white"
+          >
+            MiPortal Business
           </Link>
 
           <Link
@@ -241,6 +247,14 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
           >
             <Search className="w-4 h-4 text-emerald-400" />
             <span>Auditoría de Entregabilidad</span>
+          </Link>
+
+          <Link
+            href="/#business-suite"
+            className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2.5 text-slate-300 hover:bg-slate-900 hover:text-white transition"
+          >
+            <Briefcase className="w-4 h-4 text-cyan-400" />
+            <span>MiPortal Business</span>
           </Link>
 
           <Link

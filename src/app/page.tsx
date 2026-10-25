@@ -9,8 +9,9 @@ import { createClient } from '@/utils/supabase/client';
 import DnsFixAssistant from '@/components/audit/DnsFixAssistant';
 import PrintableAuditReport from '@/components/audit/PrintableAuditReport';
 import InboxPlacementSimulator from '@/components/audit/InboxPlacementSimulator';
+import MiPortalSuiteShowcase from '@/components/home/MiPortalSuiteShowcase';
 import Navbar from '@/components/navigation/Navbar';
-import { FileDown, Sparkles, Lightbulb } from 'lucide-react';
+import { FileDown, Sparkles, Lightbulb, Shield, Briefcase } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import type { Json } from '@/types/database';
 
@@ -186,6 +187,14 @@ export default function Home() {
     }
   };
 
+  const focusAuditInput = () => {
+    const el = document.getElementById('domain-audit-input');
+    if (el) {
+      el.focus();
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
       {/* Top Navbar */}
@@ -196,31 +205,39 @@ export default function Home() {
         {/* Hero Section */}
         <div className="text-center max-w-3xl mx-auto flex flex-col items-center gap-4 print:hidden">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-            <svg className="w-3.5 h-3.5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Auditoría de Entregabilidad en Tiempo Real
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            Ecosistema Unificado MiPortal • Ciberseguridad & Negocio
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-50 leading-tight">
-            ¿Tus cotizaciones y correos caen en{' '}
-            <span className="text-rose-400 underline decoration-rose-500/40 decoration-wavy">
-              Spam
-            </span>
-            ? <br />
+            El Ecosistema Todo-en-Uno para tu Negocio y la{' '}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-              Audita tu dominio en segundos.
+              Salud de tu Dominio.
             </span>
           </h1>
 
           <p className="text-base sm:text-lg text-slate-400 leading-relaxed max-w-2xl">
-            Inspección profunda de registros <strong>SPF, DMARC, DKIM, MX y BIMI</strong> conforme
-            a las directivas estrictas de Google y Yahoo 2024+. Resolución nativa sin intermediarios.
+            Gestiona tu presencia, emite cobros y blinda la entregabilidad de tus correos frente a las directivas de Google y Yahoo 2024+. Resolución nativa sin intermediarios.
           </p>
+
+          {/* Barra de Selector Rápido */}
+          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl max-w-md w-full justify-center mt-1">
+            <button
+              type="button"
+              onClick={focusAuditInput}
+              className="flex-1 py-2 px-3.5 rounded-xl text-xs font-bold bg-emerald-500 text-slate-950 flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.98]"
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span>Auditar Dominio en Vivo</span>
+            </button>
+            <a
+              href="#business-suite"
+              className="flex-1 py-2 px-3.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/80 flex items-center justify-center gap-2 transition"
+            >
+              <Briefcase className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Explorar Módulos</span>
+            </a>
+          </div>
         </div>
 
         {/* Diagnostic Input Bar */}
@@ -244,6 +261,7 @@ export default function Home() {
                 />
               </svg>
               <input
+                id="domain-audit-input"
                 type="text"
                 value={domainInput}
                 onChange={(e) => setDomainInput(e.target.value)}
@@ -1182,6 +1200,9 @@ export default function Home() {
           </div>
         </>
       )}
+
+        {/* Catálogo de la Suite MiPortal & Soluciones por Industria */}
+        <MiPortalSuiteShowcase onSelectAuditAction={focusAuditInput} />
       </main>
 
       {/* Footer */}
