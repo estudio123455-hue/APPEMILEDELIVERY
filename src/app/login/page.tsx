@@ -2,13 +2,17 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const isVerifiedQuery = searchParams.get('verified') === 'true';
+  const callbackError = searchParams.get('error');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,6 +21,15 @@ export default function LoginPage() {
   const [totpCode, setTotpCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showHelperBanner, setShowHelperBanner] = useState(true);
+
+  useEffect(() => {
+    if (callbackError) {
+      setError(
+        'El enlace de verificación expiró o ya fue utilizado. Si hiciste clic previamente, tu cuenta ya fue validada. Por favor intenta iniciar sesión.'
+      );
+    }
+  }, [callbackError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +39,7 @@ export default function LoginPage() {
     try {
       const supabase = createClient();
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim().toLowerCase(),
         password,
       });
 
@@ -45,7 +58,7 @@ export default function LoginPage() {
       const factorsResponse = await supabase.auth.mfa.listFactors();
       const verifiedFactor = factorsResponse.data?.totp?.find((f) => f.status === 'verified');
 
-      // 2. Si el usuario fue reseteado por el administrador o aún no ha configurado 2FA
+      // 2. Si el usuario aún no tiene un factor 2FA configurado, redirigir obligatoriamente a /setup-2fa
       if (!verifiedFactor) {
         router.push('/setup-2fa');
         router.refresh();
@@ -69,6 +82,8 @@ export default function LoginPage() {
         err instanceof Error
           ? err.message === 'Invalid login credentials'
             ? 'Credenciales inválidas. Verifica tu correo y contraseña.'
+            : err.message === 'Email not confirmed'
+            ? 'Tu correo aún no ha sido confirmado. Revisa tu bandeja de entrada o spam.'
             : err.message
           : 'Error inesperado al iniciar sesión.';
       setError(message);
@@ -117,10 +132,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-white px-4">
-      <div className="w-full max-w-md bg-[#121212] border border-neutral-800 rounded-2xl p-8 shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-white px-4 py-12 antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
+      <div className="w-full max-w-md bg-[#121212] border border-neutral-800 rounded-2xl p-6 sm:p-8 shadow-2xl">
         {mfaRequired ? (
-          // Paso 2: Desafío Obligatorio 2FA
+          /* Paso 2: Desafío Obligatorio 2FA (AAL2) */
           <div className="flex flex-col gap-5">
             <div className="text-center flex flex-col items-center">
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mb-3">
@@ -174,7 +189,6 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Support Message Box */}
             <div className="p-3 rounded-lg bg-neutral-900/80 border border-neutral-800 text-center text-xs text-neutral-400 leading-relaxed">
               ¿Perdiste acceso a tu app autenticadora? El 2FA es obligatorio. Escribe a{' '}
               <a href="mailto:admin@miportal.me" className="text-emerald-400 underline hover:text-emerald-300">
@@ -196,14 +210,44 @@ export default function LoginPage() {
             </button>
           </div>
         ) : (
-          // Paso 1: Correo y Contraseña
+          /* Paso 1: Correo y Contraseña */
           <>
             <h2 className="text-2xl font-bold text-center tracking-tight mb-2">
               Iniciar Sesión
             </h2>
-            <p className="text-neutral-400 text-sm text-center mb-6">
+            <p className="text-neutral-400 text-sm text-center mb-5">
               Ingresa a tu panel de DeliverabilityGuard
             </p>
+
+            {/* Alerta de Correo Verificado si viene ?verified=true */}
+            {isVerifiedQuery && (
+              <div className="mb-4 p-3 bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 rounded-xl text-xs flex items-center gap-2.5 shadow-sm">
+                <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 font-bold text-xs">
+                  ✓
+                </div>
+                <span>Correo electrónico verificado correctamente. Ya puedes iniciar sesión.</span>
+              </div>
+            )}
+
+            {/* Banner Informativo Anti-Confusión Justo Encima del Formulario */}
+            {showHelperBanner && (
+              <div className="mb-4 p-3.5 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-slate-300 flex items-start justify-between gap-3 shadow-inner">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-base select-none mt-0.5">💡</span>
+                  <p className="leading-relaxed text-slate-300">
+                    ¿Confirmaste tu correo y viste un error en el navegador? Tu cuenta ya está validada. Ingresa tu correo y contraseña aquí para continuar.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowHelperBanner(false)}
+                  className="text-slate-500 hover:text-slate-300 text-sm font-semibold transition px-1"
+                  title="Ocultar aviso"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
 
             {error && (
               <div className="mb-4 p-3 bg-red-950/40 border border-red-500/50 text-red-300 rounded-lg text-sm text-center">
@@ -259,5 +303,19 @@ export default function LoginPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-white">
+          <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
