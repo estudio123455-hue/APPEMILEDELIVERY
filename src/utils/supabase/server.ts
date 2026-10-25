@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import type { Database } from '@/types/database';
 
 const FALLBACK_URL = 'https://xlmxfatjupdvuqzzciuj.supabase.co';
 const FALLBACK_ANON_KEY =
@@ -10,7 +11,7 @@ export async function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || FALLBACK_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || FALLBACK_ANON_KEY;
 
-  return createServerClient(url, key, {
+  return createServerClient<Database>(url, key, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { executeDomainAudit } from '@/lib/dns';
-import { AuditRequestSchema } from '@/lib/schemas/audit';
+import { AuditRequestSchema } from '@/lib/validations';
 import { checkRateLimit } from '@/lib/simple-ratelimit';
 
 export const runtime = 'nodejs';
@@ -17,13 +17,28 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
-  const { success } = checkRateLimit(ip, 10, 60000); // 10 solicitudes por minuto
+  // Extract client IP safely (supports proxies / cloudflare / vercel)
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  const realIp = request.headers.get('x-real-ip');
+  const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : realIp || '127.0.0.1';
+
+  // Rate Limiting: Max 10 audits per minute per IP
+  const { success, remaining } = checkRateLimit(clientIp, 10, 60000);
 
   if (!success) {
     return NextResponse.json(
-      { error: 'Demasiadas solicitudes. Espera un minuto antes de auditar otro dominio.' },
-      { status: 429 }
+      {
+        error: 'RATE_LIMIT_EXCEEDED',
+        message: 'Demasiadas solicitudes. Has superado el límite de 10 auditorías por minuto. Por favor, espera antes de reintentar.',
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': '60',
+          'X-RateLimit-Limit': '10',
+          'X-RateLimit-Remaining': '0',
+        },
+      }
     );
   }
 
@@ -34,16 +49,14 @@ export async function POST(request: NextRequest) {
     } catch {
       return NextResponse.json(
         {
-          error: 'INVALID_DOMAIN',
-          details: {
-            formErrors: ['El cuerpo de la petición debe ser un JSON válido.'],
-            fieldErrors: {},
-          },
+          error: 'INVALID_PAYLOAD',
+          message: 'El cuerpo de la petición debe ser un objeto JSON válido.',
         },
         { status: 400 }
       );
     }
 
+    // Strict validation and SSRF sanitization
     const validation = AuditRequestSchema.safeParse(body);
 
     if (!validation.success) {
@@ -62,6 +75,8 @@ export async function POST(request: NextRequest) {
       status: 200,
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        'X-RateLimit-Limit': '10',
+        'X-RateLimit-Remaining': String(remaining),
       },
     });
   } catch (error) {
@@ -69,7 +84,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'AUDIT_FAILED',
-        message: 'Ocurrió un error al procesar el dominio.',
+        message: 'Ocurrió un error inesperado al procesar la auditoría DNS del dominio.',
       },
       { status: 500 }
     );

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe, NEXT_PUBLIC_APP_URL } from '@/lib/stripe';
-import { AuditRequestSchema } from '@/lib/schemas/audit';
+import { AuditRequestSchema } from '@/lib/validations';
 
 export const runtime = 'nodejs';
 
