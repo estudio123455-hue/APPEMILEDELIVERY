@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -7,7 +9,6 @@ import { createClient } from "@/utils/supabase/client";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +28,7 @@ export default function RegisterPage() {
     }
 
     try {
+      const supabase = createClient();
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,

@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { DomainAuditReport, Severity } from '@/lib/dns/types';
@@ -14,9 +16,9 @@ export default function Home() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
-  const supabase = createClient();
-
   useEffect(() => {
+    const supabase = createClient();
+
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
     });
@@ -30,9 +32,10 @@ export default function Home() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, []);
 
   const handleSignOut = async () => {
+    const supabase = createClient();
     await supabase.auth.signOut();
     setUser(null);
   };
