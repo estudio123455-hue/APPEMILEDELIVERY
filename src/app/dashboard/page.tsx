@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import type { Database, Json } from '@/types/database';
@@ -13,10 +13,6 @@ type DomainAuditRow = Database['public']['Tables']['domain_audits']['Row'];
 
 function DashboardContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const stripeSessionId = searchParams.get('session_id');
-  const proDomainQuery = searchParams.get('domain');
 
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -271,39 +267,20 @@ function DashboardContent() {
 
       {/* Main Content */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-10 flex flex-col gap-8">
-        {/* Banner de Suscripción Stripe (si viene de checkout) */}
-        {stripeSessionId && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 flex items-start justify-between gap-4 shadow-xl animate-fade-in">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
-                ✓
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-bold text-emerald-300">
-                  ¡Suscripción Pro Activada Exitosamente!
-                </span>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  El dominio <span className="font-mono font-bold text-white">{proDomainQuery || 'seleccionado'}</span> ha sido agregado a tu vigilancia continua 24/7.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Encabezado Principal */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">
-                Panel de Control
+                Centro de Monitoreo Gratuito 24/7
               </span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-50 tracking-tight mt-1">
-              Centro de Monitoreo de Dominios
+              Monitoreo y Protección de Dominios
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Vigila en tiempo real la salud de tus registros SPF, DMARC y entregabilidad general.
+              Vigila en tiempo real la salud de tus registros SPF, DMARC y entregabilidad de forma 100% libre y gratuita.
             </p>
           </div>
 

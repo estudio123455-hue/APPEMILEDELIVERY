@@ -15,7 +15,6 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState<DomainAuditReport | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isSavingDomain, setIsSavingDomain] = useState(false);
   const [saveDomainFeedback, setSaveDomainFeedback] = useState<string | null>(null);
@@ -138,40 +137,6 @@ export default function Home() {
     }
   };
 
-  const handleCheckout = async () => {
-    if (!report?.domain) return;
-
-    setCheckoutLoading(true);
-    setErrorMsg(null);
-
-    try {
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain: report.domain }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Error al iniciar la sesión de pago.');
-      }
-
-      if (data.url) {
-        // Redirección inmediata y desatendida a Stripe Checkout
-        window.location.href = data.url;
-      } else {
-        throw new Error('No se recibió la URL de redirección a Stripe.');
-      }
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Error inesperado al conectar con Stripe.';
-      alert(`No fue posible iniciar el proceso de suscripción: ${message}`);
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
-
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
     if (score >= 70) return 'text-lime-400 border-lime-500/30 bg-lime-500/10';
@@ -241,15 +206,10 @@ export default function Home() {
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               <span>Motor DNS Nativo RFC</span>
             </div>
-            <button
-              onClick={() => {
-                const el = document.getElementById('pricing-card');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
-            >
-              Planes Pro
-            </button>
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 hidden sm:inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              100% Gratuito & Abierto
+            </span>
             {user ? (
               <div className="flex items-center gap-2 sm:gap-3 ml-1">
                 <span className="text-xs font-mono text-emerald-400 hidden sm:inline truncate max-w-[160px]">
@@ -846,9 +806,8 @@ export default function Home() {
               )}
             </div>
 
-            {/* Direct Monetization / Conversion Card */}
+            {/* 100% Free & Open Protection Card */}
             <div
-              id="pricing-card"
               className="relative overflow-hidden p-8 sm:p-10 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/90 to-emerald-950/30 border-2 border-emerald-500/40 shadow-2xl shadow-emerald-950/40 flex flex-col lg:flex-row items-center justify-between gap-8"
             >
               {/* Background ambient glow */}
@@ -857,16 +816,16 @@ export default function Home() {
               <div className="flex flex-col gap-4 max-w-xl">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 w-fit">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  Monitoreo Continuo 24/7 & Protección Activa
+                  100% Gratuito y de Código Abierto para Emprendedores y Creadores
                 </div>
 
                 <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-50 tracking-tight">
-                  Evita que tus correos caigan en spam de forma permanente
+                  Herramienta Gratuita de Protección y Monitoreo de Correo
                 </h3>
 
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  Las zonas DNS cambian y las IPs son reportadas en listas negras sin previo aviso.
-                  Recibe alertas instantáneas en Slack o correo antes de que afecte tus ventas.
+                  Las zonas DNS cambian y las IPs pueden ser reportadas en listas negras sin previo aviso.
+                  DeliverabilityGuard te permite auditar y guardar tus dominios para vigilancia continua sin ningún costo ni barreras de pago.
                 </p>
 
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-slate-300">
@@ -882,7 +841,7 @@ export default function Home() {
                         clipRule="evenodd"
                       />
                     </svg>
-                    <span>Escaneo de DNS cada 60 min</span>
+                    <span>Auditorías RFC ilimitadas en tiempo real</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <svg
@@ -896,7 +855,7 @@ export default function Home() {
                         clipRule="evenodd"
                       />
                     </svg>
-                    <span>Alertas Spamhaus & Barracuda</span>
+                    <span>Asistente de reparación DNS en 1 clic</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <svg
@@ -910,7 +869,7 @@ export default function Home() {
                         clipRule="evenodd"
                       />
                     </svg>
-                    <span>Generador SPF Flattening</span>
+                    <span>Verificación en DNS globales (1.1.1.1 / 8.8.8.8)</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <svg
@@ -924,79 +883,75 @@ export default function Home() {
                         clipRule="evenodd"
                       />
                     </svg>
-                    <span>Telemetría DMARC RUA en vivo</span>
+                    <span>Guardado de dominios en tu panel personal</span>
                   </li>
                 </ul>
               </div>
 
-              {/* Pricing Box & CTA */}
+              {/* Free Action Card */}
               <div className="w-full lg:w-auto p-6 sm:p-7 rounded-2xl bg-slate-950/80 border border-emerald-500/30 flex flex-col items-center gap-4 text-center min-w-[280px]">
                 <div className="flex flex-col">
                   <span className="text-xs uppercase font-mono tracking-wider text-emerald-400 font-bold">
-                    Plan Deliverability Pro
+                    Acceso Total Gratuito
                   </span>
                   <div className="flex items-baseline justify-center gap-1 mt-1">
-                    <span className="text-4xl font-extrabold text-slate-50">$19</span>
-                    <span className="text-xs text-slate-400 font-mono">USD / mes</span>
+                    <span className="text-4xl font-extrabold text-slate-50">$0</span>
+                    <span className="text-xs text-slate-400 font-mono">USD / siempre</span>
                   </div>
-                  <span className="text-[11px] text-slate-500 mt-0.5">
-                    Sin permanencia mínima • Cancela cuando quieras
+                  <span className="text-[11px] text-slate-400 mt-0.5">
+                    Sin tarjeta de crédito • 100% Gratuito y Libre
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  disabled={checkoutLoading}
-                  onClick={handleCheckout}
-                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 active:scale-[0.98] shadow-lg shadow-emerald-500/30 transition-all disabled:opacity-60"
-                >
-                  {checkoutLoading ? (
-                    <span>Procesando...</span>
-                  ) : (
-                    <>
-                      <span>Activar Protección por $19/mes</span>
+                {user ? (
+                  <div className="w-full flex flex-col gap-2.5">
+                    <button
+                      type="button"
+                      onClick={handleSaveDomain}
+                      disabled={isSavingDomain}
+                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 active:scale-[0.98] shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-60"
+                    >
                       <svg
                         className="w-4 h-4"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
-                        strokeWidth={2.5}
+                        strokeWidth={2}
                       >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                          d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
                         />
                       </svg>
-                    </>
-                  )}
-                </button>
+                      <span>Guardar dominio en mi lista</span>
+                    </button>
 
-                {user && (
-                  <button
-                    type="button"
-                    onClick={handleSaveDomain}
-                    disabled={isSavingDomain}
-                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
-                  >
-                    <svg
-                      className="w-3.5 h-3.5 text-emerald-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
+                    <Link
+                      href="/dashboard"
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
-                      />
-                    </svg>
-                    <span>Guardar dominio para monitoreo</span>
-                  </button>
+                      <span>Ir a mi Centro de Monitoreo →</span>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="w-full flex flex-col gap-2.5">
+                    <Link
+                      href="/register"
+                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 active:scale-[0.98] shadow-lg shadow-emerald-500/25 transition-all"
+                    >
+                      <span>Crear Cuenta Gratuita</span>
+                    </Link>
+                    <Link
+                      href="/login"
+                      className="text-xs text-slate-400 hover:text-slate-200 transition"
+                    >
+                      ¿Ya tienes cuenta? Inicia sesión
+                    </Link>
+                  </div>
                 )}
 
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                <div className="flex items-center gap-1.5 text-[11px] text-emerald-400">
                   <svg
                     className="w-3.5 h-3.5 text-emerald-400"
                     fill="none"
@@ -1007,10 +962,10 @@ export default function Home() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  <span>Pago seguro procesado por Stripe</span>
+                  <span>Sin costos ocultos • Acceso libre</span>
                 </div>
               </div>
             </div>
