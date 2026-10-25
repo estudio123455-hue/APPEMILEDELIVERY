@@ -210,6 +210,16 @@ export default function Home() {
                 <span className="text-xs font-mono text-emerald-400 hidden sm:inline truncate max-w-[160px]">
                   {user.user_metadata?.full_name || user.email}
                 </span>
+                <Link
+                  href="/settings/security"
+                  className="px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium rounded-lg border border-slate-700/80 transition flex items-center gap-1.5"
+                  title="Configurar Autenticación en Dos Factores"
+                >
+                  <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <span>2FA</span>
+                </Link>
                 <button
                   onClick={handleSignOut}
                   className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg border border-slate-700 transition"
