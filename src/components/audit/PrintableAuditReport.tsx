@@ -137,6 +137,51 @@ export default function PrintableAuditReport({ report }: PrintableAuditReportPro
             </div>
           </div>
         </div>
+
+        {/* Ecosistema Tecnológico Detectado (Smart Provider Fingerprint) */}
+        {report.fingerprint && (
+          <div className="mt-4 pt-3.5 border-t border-slate-200/80">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-slate-600" />
+                Infraestructura Detectada (Smart Fingerprinting)
+              </span>
+              <span className="text-[9px] font-mono text-slate-500">Resolución NS & MX</span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2.5 text-[11px]">
+              <div className="p-2 rounded bg-white border border-slate-200">
+                <span className="text-slate-500 block text-[9px] font-bold uppercase">Proveedor de Correo:</span>
+                <span className="font-bold text-slate-900 mt-0.5 block">{report.fingerprint.emailProvider}</span>
+              </div>
+              <div className="p-2 rounded bg-white border border-slate-200">
+                <span className="text-slate-500 block text-[9px] font-bold uppercase">Gestor DNS / NS:</span>
+                <span className="font-bold text-slate-900 mt-0.5 block">{report.fingerprint.dnsHost}</span>
+              </div>
+              <div className="p-2 rounded bg-white border border-slate-200">
+                <span className="text-slate-500 block text-[9px] font-bold uppercase">Pasarelas SPF:</span>
+                <span className="font-semibold text-slate-800 mt-0.5 block truncate">
+                  {report.fingerprint.transactionalServices.length > 0
+                    ? report.fingerprint.transactionalServices.join(', ')
+                    : 'Ninguna adicional'}
+                </span>
+              </div>
+            </div>
+
+            {report.fingerprint.contextualTips.length > 0 && (
+              <div className="mt-2.5 space-y-1">
+                {report.fingerprint.contextualTips.map((tip, idx) => (
+                  <div
+                    key={idx}
+                    className="p-2 rounded bg-amber-50/70 border border-amber-200 text-slate-800 text-[10px] leading-relaxed"
+                  >
+                    <strong className="text-amber-900">Nota de compatibilidad:</strong> {tip}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {/* ========================================================= */}

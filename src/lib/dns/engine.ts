@@ -15,6 +15,7 @@ import {
 import { sanitizeDomain, withTimeout } from './utils';
 import { parseBimi, parseDkimSelector, parseDmarc, parseSpf } from './parsers';
 import { verifyMailServerTls } from './tls-check';
+import { detectProviderFingerprint } from './fingerprint';
 
 const COMMON_DKIM_SELECTORS = ['google', 'selector1', 's1', 'k1'] as const;
 const DNSBL_PROVIDERS = [
@@ -45,6 +46,7 @@ export async function executeDomainAudit(
     resolveTxt: (hostname: string) => Promise<string[][]>;
     resolveMx: (hostname: string) => Promise<NodeMxRecord[]>;
     resolve4: (hostname: string) => Promise<string[]>;
+    resolveNs: (hostname: string) => Promise<string[]>;
   } = dns;
 
   if (options?.forceRefresh) {
@@ -96,8 +98,21 @@ export async function executeDomainAudit(
     }
   };
 
+  // Safe DNS NS resolver
+  const safeResolveNs = async (lookupName: string): Promise<string[]> => {
+    try {
+      return await withTimeout(
+        dnsResolver.resolveNs(lookupName),
+        DNS_TIMEOUT_MS,
+        `Tiempo de espera agotado al consultar NS para ${lookupName}`
+      );
+    } catch {
+      return [];
+    }
+  };
+
   // 1. Parallel DNS queries
-  const [rootTxts, mxRawRecords, dmarcTxts, bimiTxts, ...dkimResults] =
+  const [rootTxts, mxRawRecords, dmarcTxts, bimiTxts, nsRecords, ...dkimResults] =
     await Promise.all([
       // Root TXT for SPF
       safeResolveTxt(domain),
@@ -107,6 +122,8 @@ export async function executeDomainAudit(
       safeResolveTxt(`_dmarc.${domain}`),
       // BIMI TXT
       safeResolveTxt(`default._bimi.${domain}`),
+      // NS records for DNS registrar/host
+      safeResolveNs(domain),
       // Common DKIM selectors
       ...COMMON_DKIM_SELECTORS.map((sel) =>
         safeResolveTxt(`${sel}._domainkey.${domain}`)
@@ -316,7 +333,15 @@ export async function executeDomainAudit(
     }
   }
 
-  // 9. Aggregate all issues
+  // 9. Provider & Registrar Fingerprinting
+  const fingerprint = detectProviderFingerprint({
+    domain,
+    mxHosts: mxRecords.map((m) => m.exchange),
+    spfRaw: spfRecord.raw || null,
+    nsRecords,
+  });
+
+  // 10. Aggregate all issues
   const allIssues: AuditIssue[] = [
     ...spfIssues,
     ...dmarcIssues,
@@ -327,7 +352,7 @@ export async function executeDomainAudit(
     ...tlsIssues,
   ];
 
-  // 10. Calculate score & summary
+  // 11. Calculate score & summary
   let criticalCount = 0;
   let warningCount = 0;
   let infoCount = 0;
@@ -373,5 +398,6 @@ export async function executeDomainAudit(
     bimi: bimiRecord,
     blacklists: blacklistResult,
     tls: tlsResult,
+    fingerprint,
   };
 }

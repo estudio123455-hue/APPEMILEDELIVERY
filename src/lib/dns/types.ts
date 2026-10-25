@@ -100,6 +100,13 @@ export interface TlsAuditResult {
   expiresInDays?: number;
 }
 
+export interface ProviderFingerprint {
+  emailProvider: string;
+  dnsHost: string;
+  transactionalServices: string[];
+  contextualTips: string[];
+}
+
 export type DomainAuditStatus = 'EXCELLENT' | 'GOOD' | 'NEEDS_ATTENTION' | 'CRITICAL';
 
 export interface AuditSummary {
@@ -122,4 +129,5 @@ export interface DomainAuditReport {
   bimi: BimiRecord;
   blacklists: BlacklistAuditResult;
   tls: TlsAuditResult;
+  fingerprint: ProviderFingerprint;
 }

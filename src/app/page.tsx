@@ -9,7 +9,7 @@ import { createClient } from '@/utils/supabase/client';
 import DnsFixAssistant from '@/components/audit/DnsFixAssistant';
 import PrintableAuditReport from '@/components/audit/PrintableAuditReport';
 import Navbar from '@/components/navigation/Navbar';
-import { FileDown } from 'lucide-react';
+import { FileDown, Sparkles, Lightbulb } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import type { Json } from '@/types/database';
 
@@ -493,7 +493,67 @@ export default function Home() {
                 hasDmarc={report.dmarc.isValid && report.dmarc.policy !== 'none' && report.dmarc.errors.length === 0}
                 userEmail={user?.email}
                 onAuditUpdate={(newReport) => setReport(newReport)}
+                fingerprint={report.fingerprint}
               />
+            )}
+
+            {/* Smart Provider Fingerprint Banner */}
+            {report.fingerprint && (
+              <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-xl flex flex-col gap-4 relative overflow-hidden">
+                <div className="absolute top-0 right-0 -mt-6 -mr-6 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="flex items-start sm:items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                          Fingerprint DNS Inteligente
+                        </span>
+                      </div>
+                      <h3 className="text-base sm:text-lg font-bold text-slate-100 flex flex-wrap items-center gap-2 mt-1">
+                        <span>Infraestructura Detectada:</span>
+                        <span className="text-emerald-400 font-extrabold">{report.fingerprint.emailProvider}</span>
+                        <span className="text-slate-500 font-light">+</span>
+                        <span className="text-cyan-400 font-extrabold">{report.fingerprint.dnsHost}</span>
+                      </h3>
+                    </div>
+                  </div>
+
+                  {/* Pasarelas Transaccionales Detectadas */}
+                  {report.fingerprint.transactionalServices.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-slate-400 font-medium">Pasarelas en SPF:</span>
+                      {report.fingerprint.transactionalServices.map((service) => (
+                        <span
+                          key={service}
+                          className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 flex items-center gap-1.5"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                          {service}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Contextual Technical Recommendations */}
+                {report.fingerprint.contextualTips.length > 0 && (
+                  <div className="pt-3 border-t border-slate-800/80 flex flex-col gap-2">
+                    {report.fingerprint.contextualTips.map((tip, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex items-start gap-2.5 text-xs text-slate-300 leading-relaxed"
+                      >
+                        <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <span>{tip}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* 5 Pillars Grid */}

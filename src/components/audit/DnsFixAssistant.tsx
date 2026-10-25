@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { DomainAuditReport } from '@/lib/dns/types';
+import type { DomainAuditReport, ProviderFingerprint } from '@/lib/dns/types';
 
 export interface DnsFixAssistantProps {
   domain: string;
@@ -9,6 +9,7 @@ export interface DnsFixAssistantProps {
   hasDmarc: boolean;
   userEmail?: string;
   onAuditUpdate?: (newReport: DomainAuditReport) => void;
+  fingerprint?: ProviderFingerprint;
 }
 
 type EmailProviderKey = 'google' | 'microsoft' | 'zoho' | 'cpanel';
@@ -94,15 +95,43 @@ const REGISTRAR_GUIDES: RegistrarGuide[] = [
   },
 ];
 
+function getInitialProvider(fingerprint?: ProviderFingerprint): EmailProviderKey {
+  if (!fingerprint) return 'google';
+  const p = fingerprint.emailProvider.toLowerCase();
+  if (p.includes('google')) return 'google';
+  if (p.includes('microsoft') || p.includes('outlook')) return 'microsoft';
+  if (p.includes('zoho')) return 'zoho';
+  if (p.includes('cpanel') || p.includes('propio') || p.includes('dedicado')) return 'cpanel';
+  return 'google';
+}
+
+function getInitialRegistrar(fingerprint?: ProviderFingerprint): RegistrarKey {
+  if (!fingerprint) return 'cloudflare';
+  const h = fingerprint.dnsHost.toLowerCase();
+  if (h.includes('squarespace')) return 'squarespace';
+  if (h.includes('cloudflare')) return 'cloudflare';
+  if (h.includes('godaddy')) return 'godaddy';
+  if (h.includes('namecheap')) return 'namecheap';
+  return 'cloudflare';
+}
+
 export default function DnsFixAssistant({
   domain,
   hasSpf,
   hasDmarc,
   userEmail,
   onAuditUpdate,
+  fingerprint,
 }: DnsFixAssistantProps) {
-  const [selectedProvider, setSelectedProvider] = useState<EmailProviderKey>('google');
-  const [selectedRegistrar, setSelectedRegistrar] = useState<RegistrarKey>('cloudflare');
+  const detectedProviderKey = fingerprint ? getInitialProvider(fingerprint) : null;
+  const detectedRegistrarKey = fingerprint ? getInitialRegistrar(fingerprint) : null;
+
+  const [selectedProvider, setSelectedProvider] = useState<EmailProviderKey>(() =>
+    getInitialProvider(fingerprint)
+  );
+  const [selectedRegistrar, setSelectedRegistrar] = useState<RegistrarKey>(() =>
+    getInitialRegistrar(fingerprint)
+  );
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Estados locales para la verificación en tiempo real
@@ -358,6 +387,7 @@ export default function DnsFixAssistant({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {EMAIL_PROVIDERS.map((provider) => {
               const isSelected = selectedProvider === provider.key;
+              const isDetected = provider.key === detectedProviderKey;
               return (
                 <button
                   key={provider.key}
@@ -371,9 +401,16 @@ export default function DnsFixAssistant({
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold tracking-tight">{provider.name}</span>
-                    {isSelected && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    )}
+                    <div className="flex items-center gap-1.5">
+                      {isDetected && (
+                        <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                          Detectado
+                        </span>
+                      )}
+                      {isSelected && (
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      )}
+                    </div>
                   </div>
                   <span className="text-[10px] text-slate-500 font-medium">{provider.badge}</span>
                 </button>
@@ -550,22 +587,56 @@ export default function DnsFixAssistant({
             </div>
 
             <div className="flex items-center gap-1.5 flex-wrap">
-              {REGISTRAR_GUIDES.map((registrar) => (
-                <button
-                  key={registrar.key}
-                  type="button"
-                  onClick={() => setSelectedRegistrar(registrar.key)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition ${
-                    selectedRegistrar === registrar.key
-                      ? 'bg-emerald-500 text-slate-950 font-bold'
-                      : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-                  }`}
-                >
-                  {registrar.name}
-                </button>
-              ))}
+              {REGISTRAR_GUIDES.map((registrar) => {
+                const isSelected = selectedRegistrar === registrar.key;
+                const isDetected = registrar.key === detectedRegistrarKey;
+                return (
+                  <button
+                    key={registrar.key}
+                    type="button"
+                    onClick={() => setSelectedRegistrar(registrar.key)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition flex items-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-emerald-500 text-slate-950 font-bold'
+                        : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                    }`}
+                  >
+                    <span>{registrar.name}</span>
+                    {isDetected && (
+                      <span
+                        className={`text-[9px] px-1 py-0.2 rounded font-mono ${
+                          isSelected
+                            ? 'bg-slate-950/20 text-slate-950 font-bold'
+                            : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        }`}
+                      >
+                        Detectado
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
+
+          {/* Contextual Tip for Selected Registrar */}
+          {currentRegistrar.key === 'squarespace' && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2">
+              <span className="text-base shrink-0">⚠️</span>
+              <span>
+                <strong>Alerta crítica de Squarespace:</strong> En el campo <em>Host</em> escribe estrictamente <code>@</code> (para SPF) y <code>_dmarc</code> (para DMARC). Squarespace añade automáticamente tu dominio al final; si escribes el dominio completo, se duplicará.
+              </span>
+            </div>
+          )}
+
+          {currentRegistrar.key === 'cloudflare' && (
+            <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs flex items-start gap-2">
+              <span className="text-base shrink-0">☁️</span>
+              <span>
+                <strong>Modo Solo DNS en Cloudflare:</strong> Asegúrate de que los registros TXT y MX queden en modo <em>DNS Only</em> (nube gris apagada) para que los servidores de correo mundiales puedan leerlos sin interrupciones.
+              </span>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-800/80">
             {currentRegistrar.steps.map((step, idx) => (
