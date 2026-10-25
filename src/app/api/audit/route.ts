@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { executeDomainAudit } from '@/lib/dns';
 import { AuditRequestSchema } from '@/lib/schemas/audit';
+import { checkRateLimit } from '@/lib/simple-ratelimit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,16 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
+  const { success } = checkRateLimit(ip, 10, 60000); // 10 solicitudes por minuto
+
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Demasiadas solicitudes. Espera un minuto antes de auditar otro dominio.' },
+      { status: 429 }
+    );
+  }
+
   try {
     let body: unknown;
     try {
