@@ -33,7 +33,7 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // Paths exempt from mandatory 2FA redirection
+  // Rutas exentas de redirección obligatoria a setup-2fa
   const isAuthExemptPath =
     pathname.startsWith('/setup-2fa') ||
     pathname.startsWith('/login') ||
@@ -48,7 +48,7 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 2. Si el usuario está autenticado en una ruta protegida, verificar si tiene 2FA obligatorio activo
+  // 2. Si el usuario está autenticado en una ruta protegida (como '/', '/dashboard', '/settings', etc.), verificar si tiene 2FA obligatorio activo
   if (user && !isAuthExemptPath) {
     const { data: factors } = await supabase.auth.mfa.listFactors();
     const hasVerifiedTotp = factors?.totp?.some((f) => f.status === 'verified');
@@ -65,6 +65,17 @@ export async function updateSession(request: NextRequest) {
 
       return redirectResponse;
     }
+  }
+
+  // 3. Proteger rutas estrictamente privadas si no hay usuario autenticado
+  const isStrictlyPrivateRoute =
+    pathname.startsWith('/settings') ||
+    pathname.startsWith('/dashboard');
+
+  if (!user && isStrictlyPrivateRoute) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/login';
+    return NextResponse.redirect(loginUrl);
   }
 
   return supabaseResponse;

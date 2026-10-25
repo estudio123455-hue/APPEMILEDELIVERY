@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { createClient } from "@/utils/supabase/client";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { createClient } from '@/utils/supabase/client';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -44,13 +44,13 @@ export default function RegisterPage() {
         throw signUpError;
       }
 
+      // Si la sesión se inicia inmediatamente, redirigir directo a la configuración forzada de 2FA
       if (data.session) {
-        // Redirigir de inmediato al paso obligatorio de configuración 2FA
         router.push("/setup-2fa");
         router.refresh();
       } else {
         setSuccessMsg(
-          "¡Cuenta creada con éxito! Revisa tu correo electrónico para confirmar tu cuenta. Tras confirmarla, serás dirigido a configurar obligatoriamente tu aplicación Authenticator (2FA)."
+          "¡Cuenta creada con éxito! Revisa tu correo para confirmar tu registro. Tras confirmarlo, el sistema te redirigirá obligatoriamente a activar tu aplicación Authenticator (2FA)."
         );
       }
     } catch (err: unknown) {
@@ -71,7 +71,7 @@ export default function RegisterPage() {
           Crear Cuenta
         </h2>
         <p className="text-neutral-400 text-sm text-center mb-6">
-          Comienza a monitorear y optimizar la entregabilidad de tu correo
+          Comienza a monitorear y optimizar la entregabilidad de tus dominios
         </p>
 
         {error && (
@@ -134,12 +134,17 @@ export default function RegisterPage() {
               />
             </div>
 
+            <div className="p-3 bg-neutral-900 border border-neutral-800 rounded-lg text-[11px] text-neutral-400 leading-relaxed">
+              <span className="font-semibold text-emerald-400">Aviso de Seguridad:</span>{' '}
+              El 2FA con app autenticadora es obligatorio. Al registrarte deberás vincular Google Authenticator o Microsoft Authenticator.
+            </div>
+
             <button
               type="submit"
               disabled={loading}
               className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium rounded-lg text-sm transition-all"
             >
-              {loading ? "Creando cuenta..." : "Registrarse"}
+              {loading ? "Creando cuenta..." : "Registrarse y Configurar 2FA"}
             </button>
           </form>
         )}

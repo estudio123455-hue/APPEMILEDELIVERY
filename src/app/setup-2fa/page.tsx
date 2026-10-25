@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 
 export default function Setup2FAPage() {
   const router = useRouter();
@@ -14,7 +14,7 @@ export default function Setup2FAPage() {
   const [factorId, setFactorId] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
-  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyCode, setVerifyCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -27,61 +27,51 @@ export default function Setup2FAPage() {
     try {
       const supabase = createClient();
 
-      // 1. Verificar si hay un usuario autenticado
+      // 1. Validar sesión activa
       const {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        router.push("/login");
+        router.push('/login');
         return;
       }
 
       setUserEmail(user.email || null);
 
-      // 2. Comprobar si ya cuenta con un factor TOTP verificado
-      const { data: factors, error: factorsError } =
-        await supabase.auth.mfa.listFactors();
+      // 2. Si el usuario ya cuenta con un factor TOTP verificado (AAL2), redirigir directamente al panel
+      const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
 
       if (factorsError) {
         throw factorsError;
       }
 
-      const verifiedFactor = factors?.totp?.find((f) => f.status === "verified");
-
+      const verifiedFactor = factors?.totp?.find((f) => f.status === 'verified');
       if (verifiedFactor) {
-        // Ya completó el 2FA obligatorio
-        router.push("/");
+        router.push('/');
         router.refresh();
         return;
       }
 
-      // 3. Si tiene factores unverified previos, usar el existente o enrolar uno nuevo
-      const unverifiedFactor = factors?.all?.find(
-        (f) => f.factor_type === "totp" && f.status === "unverified"
+      // 3. Limpiar cualquier factor no verificado previo para evitar errores de límite en Supabase
+      const unverifiedFactors = factors?.all?.filter(
+        (f) => f.factor_type === 'totp' && f.status === 'unverified'
       );
 
-      // Iniciar enrolamiento nuevo para obtener el QR y secret
+      if (unverifiedFactors && unverifiedFactors.length > 0) {
+        for (const uf of unverifiedFactors) {
+          await supabase.auth.mfa.unenroll({ factorId: uf.id });
+        }
+      }
+
+      // 4. Iniciar enrolamiento nuevo para generar QR y secreto
       const { data: enrollData, error: enrollError } = await supabase.auth.mfa.enroll({
-        factorType: "totp",
-        issuer: "DeliverabilityGuard",
+        factorType: 'totp',
+        issuer: 'DeliverabilityGuard',
       });
 
       if (enrollError) {
-        // Si ya alcanzó el límite de factores unverified, desvincular el previo
-        if (unverifiedFactor) {
-          await supabase.auth.mfa.unenroll({ factorId: unverifiedFactor.id });
-          const retry = await supabase.auth.mfa.enroll({
-            factorType: "totp",
-            issuer: "DeliverabilityGuard",
-          });
-          if (retry.error) throw retry.error;
-          setFactorId(retry.data.id);
-          setQrCode(retry.data.totp.qr_code);
-          setSecret(retry.data.totp.secret);
-          return;
-        }
         throw enrollError;
       }
 
@@ -92,7 +82,7 @@ export default function Setup2FAPage() {
       const message =
         err instanceof Error
           ? err.message
-          : "Error al generar la configuración obligatoria de 2FA.";
+          : 'Error al generar la configuración obligatoria de 2FA.';
       setError(message);
     } finally {
       setLoading(false);
@@ -107,9 +97,9 @@ export default function Setup2FAPage() {
     e.preventDefault();
     if (!factorId) return;
 
-    const cleanCode = verifyCode.trim().replace(/\D/g, "");
+    const cleanCode = verifyCode.trim().replace(/\D/g, '');
     if (cleanCode.length !== 6) {
-      setError("El código de verificación debe contener exactamente 6 dígitos numéricos.");
+      setError('El código de verificación debe contener exactamente 6 dígitos numéricos.');
       return;
     }
 
@@ -134,18 +124,18 @@ export default function Setup2FAPage() {
 
       setSuccess(true);
 
-      // Redirigir al panel principal tras la verificación exitosa
+      // Redirigir al panel principal una vez guardada la sesión verificada
       setTimeout(() => {
-        router.push("/");
+        router.push('/');
         router.refresh();
-      }, 1200);
+      }, 1000);
     } catch (err: unknown) {
       const message =
         err instanceof Error
-          ? err.message.includes("Invalid") || err.message.includes("code")
-            ? "Código de verificación incorrecto o expirado. Revisa tu aplicación Authenticator e inténtalo de nuevo."
+          ? err.message.includes('Invalid') || err.message.includes('code')
+            ? 'Código de verificación incorrecto o expirado. Revisa tu aplicación Authenticator e inténtalo de nuevo.'
             : err.message
-          : "Error al verificar el código TOTP.";
+          : 'Error al verificar el código TOTP.';
       setError(message);
     } finally {
       setSubmitting(false);
@@ -163,7 +153,7 @@ export default function Setup2FAPage() {
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push('/login');
   };
 
   return (
@@ -190,15 +180,14 @@ export default function Setup2FAPage() {
             Requisito Obligatorio
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-50 tracking-tight mt-1">
-            Configuración Obligatoria de Seguridad (2FA)
+            Configuración Obligatoria 2FA
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-md">
-            Para proteger la confidencialidad de las auditorías de tus dominios, es obligatorio
-            vincular Google Authenticator o Microsoft Authenticator antes de continuar.
+            Por política de seguridad de DeliverabilityGuard, el uso de Google Authenticator o Microsoft Authenticator es 100% obligatorio para acceder a tu panel.
           </p>
           {userEmail && (
             <p className="text-[11px] font-mono text-slate-500 mt-0.5">
-              Activando para: <span className="text-slate-300 font-semibold">{userEmail}</span>
+              Configurando para: <span className="text-slate-300 font-semibold">{userEmail}</span>
             </p>
           )}
         </div>
@@ -216,9 +205,9 @@ export default function Setup2FAPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="text-base font-bold text-slate-100">¡2FA Verificado y Cuenta Activada!</h3>
+            <h3 className="text-base font-bold text-slate-100">¡2FA Verificado y Activado!</h3>
             <p className="text-xs text-slate-400">
-              Redirigiéndote automáticamente a tu panel de DeliverabilityGuard...
+              Redirigiéndote automáticamente a tu panel principal...
             </p>
           </div>
         ) : loading ? (
@@ -228,13 +217,13 @@ export default function Setup2FAPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-6">
-            {/* Step 1: Scan QR */}
+            {/* Paso 1: Escaneo del Código QR */}
             <div className="flex flex-col items-center gap-3">
               <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
                 <span className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 font-bold flex items-center justify-center text-[10px]">
                   1
                 </span>
-                <span>Escanea este código QR con tu aplicación Authenticator</span>
+                <span>Escanea este código QR con tu Authenticator</span>
               </div>
 
               {qrCode && (
@@ -251,7 +240,7 @@ export default function Setup2FAPage() {
               {secret && (
                 <div className="flex flex-col items-center gap-1.5 w-full mt-1">
                   <span className="text-[11px] text-slate-400">
-                    O escribe esta clave manualmente si no puedes escanear:
+                    O introduce esta clave secreta manualmente:
                   </span>
                   <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl max-w-full">
                     <code className="text-xs font-mono text-emerald-400 tracking-wider break-all font-bold">
@@ -262,21 +251,21 @@ export default function Setup2FAPage() {
                       onClick={copySecret}
                       className="text-[11px] font-semibold text-slate-300 hover:text-white px-2 py-0.5 rounded bg-slate-800 transition"
                     >
-                      {copied ? "Copiado" : "Copiar"}
+                      {copied ? 'Copiado' : 'Copiar'}
                     </button>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Step 2: Verification Input */}
+            {/* Paso 2: Validación con código de 6 dígitos */}
             <form onSubmit={handleVerify} className="flex flex-col gap-4 pt-4 border-t border-slate-800">
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
                   <span className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 font-bold flex items-center justify-center text-[10px]">
                     2
                   </span>
-                  <span>Ingresa el código de 6 dígitos para validar</span>
+                  <span>Ingresa el código de 6 dígitos generado</span>
                 </div>
                 <input
                   type="text"
@@ -287,7 +276,7 @@ export default function Setup2FAPage() {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   value={verifyCode}
-                  onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))}
                   placeholder="000000"
                   className="w-full text-center tracking-[0.5em] font-mono text-2xl font-bold bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 />
@@ -298,18 +287,27 @@ export default function Setup2FAPage() {
                 disabled={submitting || verifyCode.length !== 6}
                 className="w-full py-3.5 rounded-xl font-bold text-sm bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition shadow-lg shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? "Verificando..." : "Verificar y Activar Cuenta"}
+                {submitting ? 'Verificando...' : 'Verificar y Activar Cuenta'}
               </button>
             </form>
 
-            {/* Sign Out Option */}
-            <div className="text-center pt-2">
+            {/* Support Message Box */}
+            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center text-xs text-slate-400">
+              ¿Problemas con tu dispositivo o perdiste acceso? Contacta al administrador en{' '}
+              <a href="mailto:admin@miportal.me" className="text-emerald-400 underline hover:text-emerald-300">
+                admin@miportal.me
+              </a>{' '}
+              para restablecimiento de seguridad.
+            </div>
+
+            {/* Sign Out */}
+            <div className="text-center">
               <button
                 type="button"
                 onClick={handleSignOut}
                 className="text-xs text-slate-500 hover:text-slate-300 transition"
               >
-                Cerrar sesión y configurar más tarde
+                Cerrar sesión
               </button>
             </div>
           </div>

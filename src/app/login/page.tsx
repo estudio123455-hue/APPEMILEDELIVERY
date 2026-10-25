@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { createClient } from "@/utils/supabase/client";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { createClient } from '@/utils/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [mfaRequired, setMfaRequired] = useState(false);
   const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
-  const [totpCode, setTotpCode] = useState("");
+  const [totpCode, setTotpCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -34,18 +34,7 @@ export default function LoginPage() {
         throw signInError;
       }
 
-      // Comprobar factores 2FA obligatorios del usuario
-      const factors = await supabase.auth.mfa.listFactors();
-      const verifiedFactor = factors.data?.totp?.find((f) => f.status === "verified");
-
-      // Si NO tiene factor TOTP verificado, dirigir obligatoriamente a la configuración
-      if (!verifiedFactor) {
-        router.push("/setup-2fa");
-        router.refresh();
-        return;
-      }
-
-      // Si tiene factor verificado, comprobar si requiere resolver el reto 2FA (AAL2)
+      // 1. Obtener nivel de aseguramiento MFA y factores registrados
       const { data: mfaData, error: mfaError } =
         await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
 
@@ -53,23 +42,35 @@ export default function LoginPage() {
         throw mfaError;
       }
 
-      if (mfaData.nextLevel === "aal2" && mfaData.currentLevel !== "aal2") {
+      const factorsResponse = await supabase.auth.mfa.listFactors();
+      const verifiedFactor = factorsResponse.data?.totp?.find((f) => f.status === 'verified');
+
+      // 2. Si el usuario fue reseteado por el administrador o aún no ha configurado 2FA
+      if (!verifiedFactor) {
+        router.push('/setup-2fa');
+        router.refresh();
+        return;
+      }
+
+      // 3. Si tiene factor verificado y su nivel actual requiere elevación a AAL2
+      if (mfaData.nextLevel === 'aal2' || mfaData.currentLevel !== 'aal2') {
         setTotpFactorId(verifiedFactor.id);
         setMfaRequired(true);
         return;
       }
 
+      // 4. Si ya está verificado en AAL2
       if (data.user) {
-        router.push("/");
+        router.push('/');
         router.refresh();
       }
     } catch (err: unknown) {
       const message =
         err instanceof Error
-          ? err.message === "Invalid login credentials"
-            ? "Credenciales inválidas. Verifica tu correo y contraseña."
+          ? err.message === 'Invalid login credentials'
+            ? 'Credenciales inválidas. Verifica tu correo y contraseña.'
             : err.message
-          : "Error inesperado al iniciar sesión.";
+          : 'Error inesperado al iniciar sesión.';
       setError(message);
     } finally {
       setLoading(false);
@@ -80,9 +81,9 @@ export default function LoginPage() {
     e.preventDefault();
     if (!totpFactorId) return;
 
-    const cleanCode = totpCode.trim().replace(/\s+/g, "");
+    const cleanCode = totpCode.trim().replace(/\D/g, '');
     if (cleanCode.length !== 6) {
-      setError("El código de verificación debe tener exactamente 6 dígitos.");
+      setError('El código de verificación debe tener exactamente 6 dígitos numéricos.');
       return;
     }
 
@@ -100,15 +101,15 @@ export default function LoginPage() {
         throw verifyError;
       }
 
-      router.push("/");
+      router.push('/');
       router.refresh();
     } catch (err: unknown) {
       const message =
         err instanceof Error
-          ? err.message.includes("Invalid") || err.message.includes("code")
-            ? "Código de autenticación incorrecto o expirado. Revisa tu aplicación."
+          ? err.message.includes('Invalid') || err.message.includes('code')
+            ? 'Código de verificación incorrecto o expirado. Revisa tu aplicación Authenticator.'
             : err.message
-          : "Error al verificar el segundo factor.";
+          : 'Error al verificar el segundo factor.';
       setError(message);
     } finally {
       setLoading(false);
@@ -119,7 +120,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-white px-4">
       <div className="w-full max-w-md bg-[#121212] border border-neutral-800 rounded-2xl p-8 shadow-xl">
         {mfaRequired ? (
-          // Paso 2: Desafío 2FA
+          // Paso 2: Desafío Obligatorio 2FA
           <div className="flex flex-col gap-5">
             <div className="text-center flex flex-col items-center">
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mb-3">
@@ -134,7 +135,7 @@ export default function LoginPage() {
               </div>
               <h2 className="text-xl font-bold tracking-tight">Verificación en Dos Pasos (2FA)</h2>
               <p className="text-neutral-400 text-xs mt-1 max-w-xs">
-                Ingresa el código temporal de 6 dígitos generado en tu aplicación autenticadora.
+                Ingresa el código temporal de 6 dígitos generado por tu aplicación Authenticator.
               </p>
             </div>
 
@@ -158,7 +159,7 @@ export default function LoginPage() {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   value={totpCode}
-                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
                   placeholder="000000"
                   className="w-full text-center tracking-[0.5em] font-mono text-2xl font-bold px-4 py-3 rounded-xl bg-neutral-900 border border-neutral-700 focus:outline-none focus:border-emerald-500 text-white"
                 />
@@ -169,18 +170,27 @@ export default function LoginPage() {
                 disabled={loading || totpCode.length !== 6}
                 className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold rounded-lg text-sm transition-all shadow-lg shadow-emerald-500/20"
               >
-                {loading ? "Verificando..." : "Verificar y Acceder"}
+                {loading ? 'Verificando...' : 'Verificar y Acceder'}
               </button>
             </form>
+
+            {/* Support Message Box */}
+            <div className="p-3 rounded-lg bg-neutral-900/80 border border-neutral-800 text-center text-xs text-neutral-400 leading-relaxed">
+              ¿Perdiste acceso a tu app autenticadora? El 2FA es obligatorio. Escribe a{' '}
+              <a href="mailto:admin@miportal.me" className="text-emerald-400 underline hover:text-emerald-300">
+                admin@miportal.me
+              </a>{' '}
+              para solicitar la revocación administrativa de tu factor.
+            </div>
 
             <button
               type="button"
               onClick={() => {
                 setMfaRequired(false);
-                setTotpCode("");
+                setTotpCode('');
                 setError(null);
               }}
-              className="text-center text-xs text-neutral-400 hover:text-neutral-200 mt-2 transition"
+              className="text-center text-xs text-neutral-400 hover:text-neutral-200 mt-1 transition"
             >
               ← Volver a ingresar usuario y contraseña
             </button>
@@ -235,12 +245,12 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium rounded-lg text-sm transition-all"
               >
-                {loading ? "Iniciando sesión..." : "Acceder"}
+                {loading ? 'Iniciando sesión...' : 'Acceder'}
               </button>
             </form>
 
             <p className="mt-6 text-center text-sm text-neutral-400">
-              ¿No tienes una cuenta?{" "}
+              ¿No tienes una cuenta?{' '}
               <Link href="/register" className="text-blue-400 hover:underline">
                 Regístrate aquí
               </Link>
