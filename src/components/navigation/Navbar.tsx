@@ -129,12 +129,16 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             <span>Generador DNS</span>
           </Link>
 
-          <a
-            href="/#faq"
-            className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+          <Link
+            href="/guide"
+            className={`text-sm font-medium transition-colors ${
+              pathname.startsWith('/guide')
+                ? 'text-emerald-400 font-semibold'
+                : 'text-slate-400 hover:text-white'
+            }`}
           >
             Guía & RFCs
-          </a>
+          </Link>
         </nav>
 
         {/* ========================================================= */}
@@ -251,13 +255,17 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             <span>Generador SPF & DMARC</span>
           </Link>
 
-          <a
-            href="/#faq"
-            className="px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white flex items-center gap-2.5 transition"
+          <Link
+            href="/guide"
+            className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2.5 transition ${
+              pathname.startsWith('/guide')
+                ? 'bg-emerald-500/10 text-emerald-400 font-semibold'
+                : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+            }`}
           >
-            <Shield className="w-4 h-4 text-slate-400" />
-            <span>Guía de Normativas RFC</span>
-          </a>
+            <Shield className="w-4 h-4 text-emerald-400" />
+            <span>Guía & RFCs</span>
+          </Link>
 
           {user && (
             <div className="pt-2 border-t border-slate-800/80 flex flex-col gap-2">
