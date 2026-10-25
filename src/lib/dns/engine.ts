@@ -2,6 +2,8 @@ import dns from 'node:dns/promises';
 import type { MxRecord as NodeMxRecord } from 'node:dns';
 import {
   AuditIssue,
+  BlacklistAuditResult,
+  BlacklistDetail,
   DkimAuditResult,
   DkimRecord,
   DomainAuditReport,
@@ -13,11 +15,18 @@ import { sanitizeDomain, withTimeout } from './utils';
 import { parseBimi, parseDkimSelector, parseDmarc, parseSpf } from './parsers';
 
 const COMMON_DKIM_SELECTORS = ['google', 'selector1', 's1', 'k1'] as const;
+const DNSBL_PROVIDERS = [
+  'zen.spamhaus.org',
+  'bl.spamcop.net',
+  'b.barracudacentral.org',
+  'dnsbl.sorbs.net',
+] as const;
 const DNS_TIMEOUT_MS = 3500;
+const DNSBL_TIMEOUT_MS = 2000;
 
 /**
  * Executes a comprehensive DNS deliverability and security audit for a given domain.
- * Evaluates SPF, DMARC, DKIM, MX, and BIMI records natively using node:dns/promises in parallel.
+ * Evaluates SPF, DMARC, DKIM, MX, BIMI, and DNSBL Blacklists natively using node:dns/promises in parallel.
  */
 export async function executeDomainAudit(
   inputDomain: string,
@@ -33,6 +42,7 @@ export async function executeDomainAudit(
   let dnsResolver: {
     resolveTxt: (hostname: string) => Promise<string[][]>;
     resolveMx: (hostname: string) => Promise<NodeMxRecord[]>;
+    resolve4: (hostname: string) => Promise<string[]>;
   } = dns;
 
   if (options?.forceRefresh) {
@@ -53,11 +63,7 @@ export async function executeDomainAudit(
         DNS_TIMEOUT_MS,
         `Tiempo de espera agotado al consultar TXT para ${lookupName}`
       );
-    } catch (err: unknown) {
-      const code = (err as { code?: string })?.code;
-      if (code === 'ENOTFOUND' || code === 'ENODATA' || code === 'NODATA') {
-        return [];
-      }
+    } catch {
       return [];
     }
   };
@@ -70,11 +76,20 @@ export async function executeDomainAudit(
         DNS_TIMEOUT_MS,
         `Tiempo de espera agotado al consultar MX para ${lookupName}`
       );
-    } catch (err: unknown) {
-      const code = (err as { code?: string })?.code;
-      if (code === 'ENOTFOUND' || code === 'ENODATA' || code === 'NODATA') {
-        return [];
-      }
+    } catch {
+      return [];
+    }
+  };
+
+  // Safe DNS IPv4 resolver
+  const safeResolve4 = async (lookupName: string): Promise<string[]> => {
+    try {
+      return await withTimeout(
+        dnsResolver.resolve4(lookupName),
+        DNS_TIMEOUT_MS,
+        `Tiempo de espera agotado al consultar IPv4 para ${lookupName}`
+      );
+    } catch {
       return [];
     }
   };
@@ -176,16 +191,107 @@ export async function executeDomainAudit(
     errors: dkimErrors,
   };
 
-  // 7. Aggregate all issues
+  // 7. Check DNSBL / RBL Blacklists
+  let mailServerIp: string | null = null;
+  if (mxRecords.length > 0) {
+    const primaryMx = mxRecords[0].exchange;
+    const mxIps = await safeResolve4(primaryMx);
+    if (mxIps.length > 0) {
+      mailServerIp = mxIps[0];
+    }
+  }
+
+  // Fallback a la IP A del dominio si no hay MX o no resolvió
+  if (!mailServerIp) {
+    const domainIps = await safeResolve4(domain);
+    if (domainIps.length > 0) {
+      mailServerIp = domainIps[0];
+    }
+  }
+
+  let blacklistDetails: BlacklistDetail[] = [];
+  let blacklistsListed = 0;
+
+  if (mailServerIp && mailServerIp.includes('.')) {
+    const reversedIp = mailServerIp.trim().split('.').reverse().join('.');
+
+    blacklistDetails = await Promise.all(
+      DNSBL_PROVIDERS.map(async (provider) => {
+        const queryHost = `${reversedIp}.${provider}`;
+        try {
+          const ips = await withTimeout(
+            dnsResolver.resolve4(queryHost),
+            DNSBL_TIMEOUT_MS,
+            'Timeout en consulta DNSBL'
+          );
+          const returnCode = ips[0];
+
+          // Spamhaus deniega consultas públicas de 1.1.1.1/8.8.8.8 retornando 127.255.255.254/255
+          const isSpamhausDenied =
+            provider === 'zen.spamhaus.org' &&
+            (returnCode === '127.255.255.254' || returnCode === '127.255.255.255');
+
+          const isListed =
+            !isSpamhausDenied && Boolean(returnCode && returnCode.startsWith('127.0.0.'));
+
+          return {
+            provider,
+            listed: isListed,
+            returnCode: isListed ? returnCode : undefined,
+          };
+        } catch {
+          // NXDOMAIN / ENOTFOUND significa que no está listado (limpio)
+          return {
+            provider,
+            listed: false,
+          };
+        }
+      })
+    );
+
+    blacklistsListed = blacklistDetails.filter((d) => d.listed).length;
+  } else {
+    blacklistDetails = DNSBL_PROVIDERS.map((provider) => ({
+      provider,
+      listed: false,
+    }));
+  }
+
+  const blacklistResult: BlacklistAuditResult = {
+    ip: mailServerIp || 'No detectada',
+    checked: DNSBL_PROVIDERS.length,
+    listed: blacklistsListed,
+    details: blacklistDetails,
+  };
+
+  const blacklistIssues: AuditIssue[] = [];
+  if (blacklistsListed > 0) {
+    const listedNames = blacklistDetails
+      .filter((d) => d.listed)
+      .map((d) => d.provider)
+      .join(', ');
+
+    blacklistIssues.push({
+      id: 'blacklist-listed',
+      category: 'BLACKLIST',
+      severity: 'CRITICAL',
+      title: `Servidor de correo listado en ${blacklistsListed} lista(s) negra(s) DNSBL`,
+      description: `La IP pública de tu servidor de correo (${blacklistResult.ip}) aparece reportada en: ${listedNames}. Esto provocará rechazos inmediatos o clasificación masiva en SPAM por parte de Gmail, Outlook y Yahoo.`,
+      recommendation: 'Solicita el desliste inmediato (delisting) en las páginas oficiales de las RBLs afectadas y audita envíos anómalos o cuentas vulneradas en tu red.',
+    });
+  }
+
+  // 8. Aggregate all issues
   const allIssues: AuditIssue[] = [
     ...spfIssues,
     ...dmarcIssues,
     ...dkimIssues,
     ...mxIssues,
     ...bimiIssues,
+    ...blacklistIssues,
   ];
 
-  // 8. Calculate score & summary
+  // 9. Calculate score & summary
   let criticalCount = 0;
   let warningCount = 0;
   let infoCount = 0;
@@ -229,5 +335,6 @@ export async function executeDomainAudit(
     dkim: dkimResult,
     mx: mxResult,
     bimi: bimiRecord,
+    blacklists: blacklistResult,
   };
 }

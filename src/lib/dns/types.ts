@@ -1,6 +1,6 @@
 export type Severity = 'CRITICAL' | 'WARNING' | 'INFO';
 
-export type IssueCategory = 'SPF' | 'DMARC' | 'DKIM' | 'MX' | 'BIMI' | 'GENERAL';
+export type IssueCategory = 'SPF' | 'DMARC' | 'DKIM' | 'MX' | 'BIMI' | 'BLACKLIST' | 'GENERAL';
 
 export interface AuditIssue {
   id: string;
@@ -78,6 +78,19 @@ export interface BimiRecord {
   errors: string[];
 }
 
+export interface BlacklistDetail {
+  provider: string;
+  listed: boolean;
+  returnCode?: string;
+}
+
+export interface BlacklistAuditResult {
+  ip: string;
+  checked: number;
+  listed: number;
+  details: BlacklistDetail[];
+}
+
 export type DomainAuditStatus = 'EXCELLENT' | 'GOOD' | 'NEEDS_ATTENTION' | 'CRITICAL';
 
 export interface AuditSummary {
@@ -98,4 +111,5 @@ export interface DomainAuditReport {
   dkim: DkimAuditResult;
   mx: MxAuditResult;
   bimi: BimiRecord;
+  blacklists: BlacklistAuditResult;
 }

@@ -309,6 +309,54 @@ export default function PrintableAuditReport({ report }: PrintableAuditReportPro
             </div>
           </div>
         </div>
+
+        {/* Diagnóstico de Listas Negras DNSBL / RBL */}
+        <div className="mt-3 border border-slate-200 rounded-lg p-3 bg-white">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-bold text-slate-900 flex items-center gap-1.5">
+              <ShieldAlert className="w-3.5 h-3.5 text-slate-700" />
+              Reputación de IP y Listas Negras (DNSBL / RBL)
+            </span>
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                report.blacklists.listed === 0
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                  : 'bg-rose-50 text-rose-800 border-rose-300'
+              }`}
+            >
+              {report.blacklists.listed === 0
+                ? 'LIMPIO (0 LISTAS NEGRAS)'
+                : `LISTADO EN ${report.blacklists.listed} LISTA(S)`}
+            </span>
+          </div>
+
+          <div className="text-[11px] text-slate-600 mb-2 flex items-center gap-2">
+            <strong>IP Evaluada del Servidor de Correo:</strong>
+            <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-slate-900 font-mono font-bold text-xs">
+              {report.blacklists.ip}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {report.blacklists.details.map((bl) => (
+              <div
+                key={bl.provider}
+                className="flex items-center justify-between p-2 rounded bg-slate-50 border border-slate-200 text-xs font-mono"
+              >
+                <span className="text-slate-800 font-semibold">{bl.provider}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                    bl.listed
+                      ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                  }`}
+                >
+                  {bl.listed ? `Listado (${bl.returnCode || '127.0.0.X'})` : 'Limpio'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ========================================================= */}

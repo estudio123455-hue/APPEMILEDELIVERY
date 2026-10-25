@@ -515,7 +515,7 @@ export default function Home() {
                 Pilares Fundamentales de Autenticación
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 {/* 1. MX */}
                 <div className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800/80 flex flex-col justify-between gap-3">
                   <div className="flex items-center justify-between">
@@ -668,6 +668,109 @@ export default function Home() {
                     {report.bimi.logoUrl ? 'SVG configurado' : 'No configurado'}
                   </div>
                 </div>
+
+                {/* 6. DNSBL BLACKLIST */}
+                <div className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800/80 flex flex-col justify-between gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold tracking-wider text-slate-400">
+                      DNSBL RBL
+                    </span>
+                    {report.blacklists.listed === 0 ? (
+                      <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        Limpio
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                        {report.blacklists.listed} Listado
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-200">Listas Negras</p>
+                    <p className="text-xs text-slate-400 mt-0.5 font-mono truncate" title={report.blacklists.ip}>
+                      IP: {report.blacklists.ip}
+                    </p>
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-500">
+                    {report.blacklists.details.length} listas consultadas
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Diagnóstico Detallado de Listas Negras (DNSBL / RBL) */}
+            <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
+                      report.blacklists.listed === 0
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    }`}
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                      Diagnóstico de Listas Negras (DNSBL / RBL)
+                      <span
+                        className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold border ${
+                          report.blacklists.listed === 0
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }`}
+                      >
+                        {report.blacklists.listed === 0
+                          ? 'Sin Reportes Activos'
+                          : `${report.blacklists.listed} Reporte(s)`}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      IP del Servidor de Correo:{' '}
+                      <span className="font-mono text-slate-200 font-bold">{report.blacklists.ip}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <span className="text-xs text-slate-400 font-mono">
+                  {report.blacklists.checked} listas auditadas en tiempo real
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                {report.blacklists.details.map((bl) => (
+                  <div
+                    key={bl.provider}
+                    className={`p-3.5 rounded-xl border flex flex-col justify-between gap-2 transition ${
+                      bl.listed
+                        ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                        : 'bg-slate-950/60 border-slate-800/80 text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-bold text-slate-200">{bl.provider}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                          bl.listed
+                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                            : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                        }`}
+                      >
+                        {bl.listed ? 'LISTADO' : 'LIMPIO'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {bl.listed ? `Respuesta: ${bl.returnCode}` : 'Sin reportes en esta lista'}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
