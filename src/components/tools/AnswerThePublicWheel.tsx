@@ -24,8 +24,25 @@ import {
 import type { AskPublicResponse, AskPublicCategories } from '@/types/ask-public';
 import type { BusinessModelWheelData, BusinessModelCategory, BusinessModelNode } from '@/types/market-report';
 
-export type WheelType = 'questions' | 'business_model';
+export type WheelType = 'questions' | 'business_model' | 'business-model' | 'social-listening';
 export type DiagramMode = 'radial' | 'tree';
+
+interface NormalizedNode {
+  label: string;
+  detail: string;
+}
+
+interface NormalizedBranch {
+  id: string;
+  title: string;
+  color: string;
+  nodes: NormalizedNode[];
+}
+
+interface NormalizedBusinessModel {
+  center: string;
+  branches: NormalizedBranch[];
+}
 
 const CATEGORY_COLORS: Record<string, { label: string; color: string; bg: string }> = {
   que: { label: 'Qué', color: '#10b981', bg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' },
@@ -62,7 +79,9 @@ export default function AnswerThePublicWheel({
 }: AnswerThePublicWheelProps) {
   // Selector de Rueda 1 (Preguntas) vs Rueda 2 (Modelo de Negocio con IA)
   const [internalWheelType, setInternalWheelType] = useState<WheelType>('questions');
-  const wheelType = activeWheelTab ?? internalWheelType;
+  const activeTabKey = activeWheelTab ?? internalWheelType;
+  const isBusinessModel = activeTabKey === 'business_model' || activeTabKey === 'business-model';
+  const wheelType = isBusinessModel ? 'business_model' : 'questions';
 
   const handleWheelTypeChange = (nextType: WheelType) => {
     setInternalWheelType(nextType);
@@ -99,111 +118,97 @@ export default function AnswerThePublicWheel({
   }, [result]);
 
   // Contextual Business Model Wheel Data (Default or AI generated)
-  const effectiveBusinessModel = useMemo<BusinessModelWheelData>(() => {
-    if (businessModelWheel) return businessModelWheel;
+  const normalizedBusinessModel = useMemo<NormalizedBusinessModel>(() => {
+    const term = (
+      result?.searchTerm ||
+      result?.analyzedDomain ||
+      result?.detectedTitle ||
+      'Mi Negocio Digital'
+    ).trim();
+    const displayBrand = term ? term.charAt(0).toUpperCase() + term.slice(1) : 'Mi Negocio Digital';
 
-    const brand = result.searchTerm.charAt(0).toUpperCase() + result.searchTerm.slice(1);
+    // Si existen datos cargados desde el backend, mapearlos a la estructura normalizada
+    if (businessModelWheel && (businessModelWheel.categories || (businessModelWheel as unknown as { branches?: unknown[] }).branches)) {
+      const rawBranches = (businessModelWheel.categories || (businessModelWheel as unknown as { branches?: unknown[] }).branches) as Array<{
+        id?: string;
+        title?: string;
+        label?: string;
+        color?: string;
+        nodes?: Array<{ label?: string; title?: string; detail?: string; desc?: string }>;
+      }>;
+
+      if (Array.isArray(rawBranches) && rawBranches.length > 0) {
+        return {
+          center: businessModelWheel.coreEntity || (businessModelWheel as unknown as { center?: string }).center || displayBrand,
+          branches: rawBranches.map((b, idx) => ({
+            id: b.id || `branch-${idx}`,
+            title: b.title || b.label || `Eje ${idx + 1}`,
+            color: b.color || '#10b981',
+            nodes: (b.nodes || []).map((n) => ({
+              label: n.label || n.title || '',
+              detail: n.detail || n.desc || '',
+            })),
+          })),
+        };
+      }
+    }
+
+    // Dataset contextual inmediato si la API aún no los entrega
     return {
-      coreEntity: brand,
-      categories: [
+      center: displayBrand || 'Mi Negocio Digital',
+      branches: [
         {
           id: 'segmentos',
-          label: 'Segmentos de Mercado',
+          title: 'Segmentos de Mercado',
           color: '#10b981', // Esmeralda
           nodes: [
-            {
-              title: 'B2B Profesionales / Agencias',
-              desc: 'Equipos que necesitan automatizar auditorías sin fricción y entregar reportes con marca propia.',
-            },
-            {
-              title: 'Creadores / Solo-founders',
-              desc: 'Usuarios buscando presencia comercial rápida, económica y posicionamiento en buscadores.',
-            },
-            {
-              title: 'Comercio Local & Servicios',
-              desc: 'Negocios tradicionales digitalizando captación, citas y comunicación omnicanal con sus clientes.',
-            },
+            { label: 'B2B / Agencias Digitales', detail: 'Equipos que gestionan reputación y auditorías de clientes' },
+            { label: 'Solo-founders & Pymes', detail: 'Empresas que buscan optimizar su entregabilidad y presencia' },
+            { label: 'Creadores de Contenido', detail: 'Monetización directa mediante Bio Sites y enlaces comerciales' },
           ],
         },
         {
-          id: 'monetizacion_ia',
-          label: 'Modelo de Negocio & IA',
+          id: 'monetizacion',
+          title: 'Modelo de Negocio & IA',
           color: '#06b6d4', // Cian
           nodes: [
-            {
-              title: 'SaaS Freemium con Paywall Inteligente',
-              desc: 'Escaneos básicos gratis + Auditorías profundas y monitoreo continuo bajo suscripción recurrente.',
-            },
-            {
-              title: 'IA Copilot de Diagnóstico',
-              desc: 'Generación automática de entregables académicos, planes de acción y copys estratégicos.',
-            },
-            {
-              title: 'Cobros por Uso / API Tokens',
-              desc: 'Monetización de consultas automatizadas para integraciones en agencias y desarrolladores aliados.',
-            },
+            { label: 'SaaS Freemium con Paywall', detail: 'Escaneo base gratuito + auditorías avanzadas por suscripción' },
+            { label: 'Diagnóstico IA Automatizado', detail: 'Generación de informes estratégicos y copys en un clic' },
+            { label: 'Planes por Asientos / API', detail: 'Acceso multiusuario y conectores para agencias' },
           ],
         },
         {
-          id: 'comparacion_competidores',
-          label: 'Comparativa de Competidores',
+          id: 'competencia',
+          title: 'Comparativa Competitiva',
           color: '#f59e0b', // Ámbar
           nodes: [
-            {
-              title: 'Vs Competidor Directo',
-              desc: 'Menor costo, interfaz en español y configuración en 1 clic.',
-            },
-            {
-              title: 'Vs Referente Aspiracional (Squarespace/Vercel)',
-              desc: 'Especialización vertical en entregabilidad de correo y reputación de dominio.',
-            },
-            {
-              title: 'Vs Competidor Indirecto (Herramientas manuales)',
-              desc: 'Automatización sin necesidad de conocimientos de consola ni configuraciones complejas.',
-            },
+            { label: 'Vs Herramientas Aisladas', detail: 'Unifica seguridad DNS, escucha social y páginas comerciales' },
+            { label: 'Vs Gigantes (Squarespace)', detail: 'Foco técnico en entregabilidad de correos y datos reales de Google' },
+            { label: 'Vs Plataformas Complejas', detail: 'Onboarding en 1 clic sin fricción técnica ni terminales' },
           ],
         },
         {
           id: 'valor_agregado',
-          label: 'Valor Agregado Diferencial',
+          title: 'Valor Agregado Diferencial',
           color: '#8b5cf6', // Violeta
           nodes: [
-            {
-              title: 'Suite Todo-en-Uno Unificada',
-              desc: 'Combina seguridad DNS, benchmarking y páginas de negocio en un solo SaaS.',
-            },
-            {
-              title: 'Reportes Académicos y Ejecutivos en 1 Clic',
-              desc: 'PDFs formales listos para presentar ante directivos o profesores sin redactar manualmente.',
-            },
-            {
-              title: 'Diagnósticos Predictivos DNSBL & TLS',
-              desc: 'Prevención proactiva antes de que los correos reboten o caigan a spam.',
-            },
+            { label: 'Protección DNSBL & STARTTLS', detail: 'Evita que las propuestas comerciales caigan en spam' },
+            { label: 'Informes Académicos Listos', detail: '5 tablas oficiales enumeradas para entrega ejecutiva o académica' },
+            { label: 'Conexión en Vivo con Google', detail: 'Preguntas reales extraídas al instante sin inventar datos' },
           ],
         },
         {
           id: 'propuesta_valor',
-          label: 'Sugerencias de Propuesta de Valor',
+          title: 'Propuesta de Valor',
           color: '#ec4899', // Rosa
           nodes: [
-            {
-              title: 'Propuesta 1 (Enfocada en Seguridad)',
-              desc: "'Blinda la reputación de tu dominio y asegura que tus cotizaciones jamás caigan en spam'",
-            },
-            {
-              title: 'Propuesta 2 (Enfocada en Crecimiento)',
-              desc: "'Tu ecosistema comercial digital completo en minutos con inteligencia de mercado'",
-            },
-            {
-              title: 'Propuesta 3 (Enfocada en Agilidad)',
-              desc: "'De la idea al mercado: auditoría, presencia web y benchmarking sin código'",
-            },
+            { label: 'Ecosistema Integral', detail: "'De la idea al mercado con seguridad y validación en tiempo real'" },
+            { label: 'Blindaje de Marca', detail: "'Asegura que tus correos lleguen y domina lo que busca tu audiencia'" },
           ],
         },
       ],
     };
-  }, [businessModelWheel, result.searchTerm]);
+  }, [businessModelWheel, result]);
 
   const toggleCategoryCollapse = (catKey: string) => {
     setCollapsedCategories((prev) => ({
@@ -324,7 +329,7 @@ export default function AnswerThePublicWheel({
             type="button"
             onClick={() => handleWheelTypeChange('questions')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-              wheelType === 'questions'
+              !isBusinessModel
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
@@ -337,7 +342,7 @@ export default function AnswerThePublicWheel({
             type="button"
             onClick={() => handleWheelTypeChange('business_model')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-              wheelType === 'business_model'
+              isBusinessModel
                 ? 'bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 text-slate-950 shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
@@ -442,7 +447,7 @@ export default function AnswerThePublicWheel({
       <div className="absolute bottom-4 left-4 z-20 pointer-events-none hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800/80 text-[11px] text-slate-400 backdrop-blur-md">
         <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
         <span>
-          {wheelType === 'business_model'
+          {isBusinessModel
             ? 'Rueda de Modelo de Negocio & IA activa • Clic en nodo para ver detalles estratégicos'
             : 'Rueda de Escucha activa • Clic en nodo para ver la consulta y buscarla en Google'}
         </span>
@@ -453,6 +458,7 @@ export default function AnswerThePublicWheel({
       {/* ========================================================= */}
       <svg
         ref={svgRef}
+        viewBox="0 0 1200 780"
         className="w-full h-full cursor-grab active:cursor-grabbing"
         xmlns="http://www.w3.org/2000/svg"
       >
@@ -473,7 +479,7 @@ export default function AnswerThePublicWheel({
           {/* ========================================================= */}
           {/* RUEDA 1: ESCUCHA DE PREGUNTAS (GOOGLE SUGGEST)            */}
           {/* ========================================================= */}
-          {wheelType === 'questions' && mode === 'radial' && (
+          {!isBusinessModel && mode === 'radial' && (
             <g transform="translate(600, 390)">
               <circle cx="0" cy="0" r="160" fill="none" stroke="#1e293b" strokeWidth="1" strokeDasharray="4 4" />
               <circle cx="0" cy="0" r="320" fill="none" stroke="#0f172a" strokeWidth="1" strokeDasharray="3 3" />
@@ -626,7 +632,7 @@ export default function AnswerThePublicWheel({
           {/* ========================================================= */}
           {/* RUEDA 1: MODO ÁRBOL HORIZONTAL (PREGUNTAS)                 */}
           {/* ========================================================= */}
-          {wheelType === 'questions' && mode === 'tree' && (
+          {!isBusinessModel && mode === 'tree' && (
             <g transform="translate(60, 40)">
               <g transform="translate(80, 320)">
                 <rect x="-70" y="-28" width="140" height="56" rx="14" fill="#020617" stroke="#10b981" strokeWidth="2.5" filter="url(#glow)" />
@@ -732,13 +738,13 @@ export default function AnswerThePublicWheel({
           {/* ========================================================= */}
           {/* RUEDA 2: MODELO DE NEGOCIO & ESTRATEGIA CON IA (RADIAL)    */}
           {/* ========================================================= */}
-          {wheelType === 'business_model' && mode === 'radial' && (
+          {isBusinessModel && mode === 'radial' && (
             <g transform="translate(600, 390)">
               <circle cx="0" cy="0" r="175" fill="none" stroke="#1e293b" strokeWidth="1" strokeDasharray="4 4" />
               <circle cx="0" cy="0" r="330" fill="none" stroke="#0f172a" strokeWidth="1" strokeDasharray="3 3" />
 
-              {effectiveBusinessModel.categories.map((cat, catIdx) => {
-                const numCats = effectiveBusinessModel.categories.length; // 5
+              {normalizedBusinessModel.branches.map((cat, catIdx) => {
+                const numCats = normalizedBusinessModel.branches.length; // 5
                 const catAngle = (2 * Math.PI * catIdx) / numCats - Math.PI / 2;
                 const catRadius = 175;
                 const catX = catRadius * Math.cos(catAngle);
@@ -766,9 +772,9 @@ export default function AnswerThePublicWheel({
                       onMouseLeave={() => setHoveredCategory(null)}
                     >
                       <rect
-                        x="-55"
+                        x="-60"
                         y="-16"
-                        width="110"
+                        width="120"
                         height="32"
                         rx="10"
                         fill="#020617"
@@ -784,11 +790,11 @@ export default function AnswerThePublicWheel({
                         fontWeight="bold"
                         className="pointer-events-none"
                       >
-                        {cat.label}
+                        {cat.title}
                       </text>
                     </g>
 
-                    {/* Conectores y Nodos de las 3 Estrategias / Tácticas */}
+                    {/* Conectores y Nodos de las Estrategias / Tácticas */}
                     {cat.nodes.map((node, nodeIdx) => {
                       const totalNodes = cat.nodes.length;
                       const angleSpan = 0.52;
@@ -798,7 +804,7 @@ export default function AnswerThePublicWheel({
                       const nodeX = nodeRadius * Math.cos(nodeAngle);
                       const nodeY = nodeRadius * Math.sin(nodeAngle);
 
-                      const isNodeHovered = hoveredNode === node.title;
+                      const isNodeHovered = hoveredNode === node.label;
                       const isHighlighted = isNodeHovered || (hoveredCategory === cat.id && hoveredNode === null);
                       const pathOpacity = isHighlighted ? 1 : hoveredCategory === null && hoveredNode === null ? 0.5 : 0.15;
 
@@ -811,7 +817,7 @@ export default function AnswerThePublicWheel({
                       const textRotation = (nodeAngle * 180) / Math.PI + (isRightSide ? 0 : 180);
 
                       return (
-                        <g key={node.title}>
+                        <g key={node.label || nodeIdx}>
                           <path
                             d={`M ${catX} ${catY} C ${cpx1} ${cpy1}, ${cpx2} ${cpy2}, ${nodeX} ${nodeY}`}
                             fill="none"
@@ -826,7 +832,7 @@ export default function AnswerThePublicWheel({
                             transform={`translate(${nodeX}, ${nodeY})`}
                             className="cursor-pointer group"
                             onMouseEnter={() => {
-                              setHoveredNode(node.title);
+                              setHoveredNode(node.label);
                               setHoveredCategory(cat.id);
                             }}
                             onMouseLeave={() => {
@@ -835,9 +841,9 @@ export default function AnswerThePublicWheel({
                             }}
                             onClick={() => {
                               setSelectedNode({
-                                title: node.title,
-                                desc: node.desc,
-                                categoryLabel: cat.label,
+                                title: node.label,
+                                desc: node.detail,
+                                categoryLabel: cat.title,
                                 color: cat.color,
                                 isQuestion: false,
                               });
@@ -860,7 +866,7 @@ export default function AnswerThePublicWheel({
                                 fontWeight={isHighlighted ? 'bold' : '500'}
                                 className="transition-colors select-none font-medium"
                               >
-                                {node.title.length > 32 ? `${node.title.slice(0, 32)}...` : node.title}
+                                {node.label.length > 34 ? `${node.label.slice(0, 34)}...` : node.label}
                               </text>
                             </g>
                           </g>
@@ -880,9 +886,9 @@ export default function AnswerThePublicWheel({
                   MODELO DE NEGOCIO
                 </text>
                 <text textAnchor="middle" y="5" fill="#ffffff" fontSize="13" fontWeight="900" className="font-mono">
-                  {effectiveBusinessModel.coreEntity.length > 16
-                    ? `${effectiveBusinessModel.coreEntity.slice(0, 16)}...`
-                    : effectiveBusinessModel.coreEntity}
+                  {normalizedBusinessModel.center.length > 16
+                    ? `${normalizedBusinessModel.center.slice(0, 16)}...`
+                    : normalizedBusinessModel.center}
                 </text>
                 <text textAnchor="middle" y="23" fill="#10b981" fontSize="9.5" fontWeight="bold">
                   Estrategia & IA
@@ -894,7 +900,7 @@ export default function AnswerThePublicWheel({
           {/* ========================================================= */}
           {/* RUEDA 2: MODO ÁRBOL HORIZONTAL (MODELO DE NEGOCIO)        */}
           {/* ========================================================= */}
-          {wheelType === 'business_model' && mode === 'tree' && (
+          {isBusinessModel && mode === 'tree' && (
             <g transform="translate(60, 40)">
               {/* Raíz Izquierda */}
               <g transform="translate(90, 320)">
@@ -904,14 +910,14 @@ export default function AnswerThePublicWheel({
                   MODELO DE NEGOCIO
                 </text>
                 <text textAnchor="middle" y="10" fill="#ffffff" fontSize="13" fontWeight="900">
-                  {effectiveBusinessModel.coreEntity.length > 14
-                    ? `${effectiveBusinessModel.coreEntity.slice(0, 14)}...`
-                    : effectiveBusinessModel.coreEntity}
+                  {normalizedBusinessModel.center.length > 14
+                    ? `${normalizedBusinessModel.center.slice(0, 14)}...`
+                    : normalizedBusinessModel.center}
                 </text>
               </g>
 
-              {effectiveBusinessModel.categories.map((cat, catIdx) => {
-                const numCats = effectiveBusinessModel.categories.length; // 5
+              {normalizedBusinessModel.branches.map((cat, catIdx) => {
+                const numCats = normalizedBusinessModel.branches.length; // 5
                 const catY = 80 + catIdx * (520 / Math.max(numCats - 1, 1));
                 const catX = 390;
                 const isCollapsed = collapsedCategories[cat.id];
@@ -940,7 +946,7 @@ export default function AnswerThePublicWheel({
                     >
                       <rect x="-50" y="-18" width="125" height="36" rx="10" fill="#020617" stroke={cat.color} strokeWidth="2" filter={isCatHovered ? 'url(#glow)' : undefined} />
                       <text textAnchor="middle" y="4" fill="#ffffff" fontSize="10.5" fontWeight="bold" className="pointer-events-none">
-                        {cat.label}
+                        {cat.title}
                       </text>
                       <circle cx="70" cy="0" r="8" fill="#1e293b" stroke={cat.color} strokeWidth="1" />
                       <text textAnchor="middle" y="3" x="70" fill={cat.color} fontSize="10" fontWeight="bold">
@@ -952,11 +958,11 @@ export default function AnswerThePublicWheel({
                       const totalNodes = nodes.length;
                       const nodeY = catY - ((totalNodes - 1) * 32) / 2 + nodeIdx * 32;
                       const nodeX = 570;
-                      const isNodeHovered = hoveredNode === node.title;
+                      const isNodeHovered = hoveredNode === node.label;
                       const isHighlighted = isNodeHovered || (hoveredCategory === cat.id && hoveredNode === null);
 
                       return (
-                        <g key={node.title}>
+                        <g key={node.label || nodeIdx}>
                           <path
                             d={`M ${catX + 78} ${catY} C ${(catX + 78 + nodeX) / 2} ${catY}, ${(catX + 78 + nodeX) / 2} ${nodeY}, ${nodeX} ${nodeY}`}
                             fill="none"
@@ -970,7 +976,7 @@ export default function AnswerThePublicWheel({
                             transform={`translate(${nodeX}, ${nodeY})`}
                             className="cursor-pointer group"
                             onMouseEnter={() => {
-                              setHoveredNode(node.title);
+                              setHoveredNode(node.label);
                               setHoveredCategory(cat.id);
                             }}
                             onMouseLeave={() => {
@@ -979,9 +985,9 @@ export default function AnswerThePublicWheel({
                             }}
                             onClick={() => {
                               setSelectedNode({
-                                title: node.title,
-                                desc: node.desc,
-                                categoryLabel: cat.label,
+                                title: node.label,
+                                desc: node.detail,
+                                categoryLabel: cat.title,
                                 color: cat.color,
                                 isQuestion: false,
                               });
@@ -989,7 +995,7 @@ export default function AnswerThePublicWheel({
                           >
                             <circle r={isHighlighted ? 5 : 3.5} fill={isHighlighted ? '#ffffff' : cat.color} stroke="#020617" strokeWidth="1.5" />
                             <text x="12" y="4" fill={isHighlighted ? '#ffffff' : '#e2e8f0'} fontSize="11" fontWeight={isHighlighted ? 'bold' : 'normal'}>
-                              {node.title}
+                              {node.label}
                             </text>
                           </g>
                         </g>

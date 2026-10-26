@@ -481,7 +481,7 @@ export default function AskThePublicClient() {
                     type="button"
                     onClick={() => setActiveWheelTab('questions')}
                     className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-                      activeWheelTab === 'questions'
+                      activeWheelTab === 'questions' || activeWheelTab === 'social-listening'
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm'
                         : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
                     }`}
@@ -493,7 +493,7 @@ export default function AskThePublicClient() {
                     type="button"
                     onClick={() => setActiveWheelTab('business_model')}
                     className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-                      activeWheelTab === 'business_model'
+                      activeWheelTab === 'business_model' || activeWheelTab === 'business-model'
                         ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
                         : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
                     }`}
