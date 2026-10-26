@@ -10,7 +10,7 @@ import {
   Check,
   Globe,
   Receipt,
-  BookOpen,
+  SearchCode,
 } from 'lucide-react';
 
 interface SuiteProduct {
@@ -33,7 +33,17 @@ const SUITE_PRODUCTS: SuiteProduct[] = [
     href: '/',
     icon: Shield,
     accentColor: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30',
-    activeWhen: (path) => path === '/' || path.startsWith('/dashboard') || path.startsWith('/tools'),
+    activeWhen: (path) => path === '/' || path.startsWith('/dashboard') || path.startsWith('/tools') || path.startsWith('/guide'),
+  },
+  {
+    id: 'market-analyzer',
+    name: 'Analizador de Mercado',
+    badge: 'HTTP Scanner',
+    description: 'Escucha social, AnswerThePublic y Google Trends.',
+    href: '/market-analyzer',
+    icon: SearchCode,
+    accentColor: 'text-teal-400 bg-teal-500/15 border-teal-500/30',
+    activeWhen: (path) => path.startsWith('/market-analyzer'),
   },
   {
     id: 'sites',
@@ -98,62 +108,72 @@ export default function SuiteSwitcher() {
         <div className="absolute left-0 mt-2 w-[310px] sm:w-[340px] rounded-2xl bg-slate-950/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-2.5 z-50 animate-fade-in divide-y divide-slate-800/80">
           {/* Header */}
           <div className="pb-2 px-2 flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Ecosistema MiPortal
             </span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
-              3 Herramientas
+            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+              v2.5
             </span>
           </div>
 
-          {/* 3 Opciones Oficiales */}
-          <div className="py-2 space-y-1">
-            {SUITE_PRODUCTS.map((product) => {
-              const Icon = product.icon;
-              const isActive = product.activeWhen(pathname);
+          {/* Lista de Productos */}
+          <div className="py-1.5 space-y-1">
+            {SUITE_PRODUCTS.map((prod) => {
+              const Icon = prod.icon;
+              const isActive = prod.activeWhen(pathname);
 
               return (
                 <Link
-                  key={product.id}
-                  href={product.href}
+                  key={prod.id}
+                  href={prod.href}
                   onClick={() => setIsOpen(false)}
-                  className={`flex items-start gap-2.5 p-2 rounded-xl transition-all border ${
+                  className={`group flex items-start gap-3 p-2 rounded-xl transition-all ${
                     isActive
-                      ? 'bg-slate-900/90 border-emerald-500/40 shadow-sm'
-                      : 'hover:bg-slate-900/60 border-transparent hover:border-slate-800'
+                      ? 'bg-slate-900 border border-slate-700/80'
+                      : 'hover:bg-slate-900/60 border border-transparent hover:border-slate-800'
                   }`}
                 >
                   <div
-                    className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${product.accentColor}`}
+                    className={`p-2 rounded-lg shrink-0 border transition-all ${prod.accentColor} group-hover:scale-105`}
                   >
                     <Icon className="w-4 h-4" />
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-100">{product.name}</span>
-                      {isActive && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold text-slate-100 group-hover:text-white transition-colors">
+                        {prod.name}
+                      </span>
+                      <span className="text-[9px] font-medium px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400 group-hover:text-slate-300">
+                        {prod.badge}
+                      </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 leading-snug mt-0.5">
-                      {product.description}
+                    <p className="text-[11px] text-slate-400 leading-tight mt-0.5 line-clamp-1">
+                      {prod.description}
                     </p>
                   </div>
+
+                  {isActive && (
+                    <div className="shrink-0 self-center">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    </div>
+                  )}
                 </Link>
               );
             })}
           </div>
 
-          {/* Footer */}
+          {/* Footer del Switcher */}
           <div className="pt-2 px-2 flex items-center justify-between text-[11px] text-slate-400">
-            <Link
-              href="/guide"
-              onClick={() => setIsOpen(false)}
-              className="hover:text-emerald-400 transition flex items-center gap-1.5 font-medium"
+            <span>¿Necesitas una solución a medida?</span>
+            <a
+              href="https://wa.me/573009120000"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-400 hover:underline font-medium"
             >
-              <BookOpen className="w-3 h-3 text-slate-400" />
-              <span>Guía Técnica & RFCs</span>
-            </Link>
-            <span className="text-[10px] font-mono text-slate-500">v2.4</span>
+              Contactar
+            </a>
           </div>
         </div>
       )}

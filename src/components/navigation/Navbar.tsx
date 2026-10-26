@@ -14,6 +14,7 @@ import {
   Sparkles,
   BookOpen,
   Globe,
+  SearchCode,
 } from 'lucide-react';
 import SuiteSwitcher from './SuiteSwitcher';
 import { createClient } from '@/utils/supabase/client';
@@ -107,13 +108,13 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
           <Link
             href="/"
             className="flex items-center gap-2.5 group transition-transform active:scale-[0.98]"
-            title="DeliverabilityGuard — Suite MiPortal"
+            title="MiPortal Suite — DeliverabilityGuard"
           >
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-slate-950 transition-all group-hover:shadow-emerald-500/35">
               <Shield className="w-4 h-4 fill-slate-950/20 stroke-[2.5]" />
             </div>
             <span className="font-semibold text-white tracking-tight text-base sm:text-lg">
-              DeliverabilityGuard
+              MiPortal
             </span>
           </Link>
 
@@ -129,7 +130,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
         {/* ========================================================= */}
         {/* ZONA CENTRAL: ENLACES PRINCIPALES (DESKTOP)               */}
         {/* ========================================================= */}
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden lg:flex items-center gap-7">
           <Link
             href="/"
             className={`text-sm font-medium transition-colors ${
@@ -138,7 +139,21 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Auditoría
+            Auditoría DNS
+          </Link>
+
+          <Link
+            href="/market-analyzer"
+            className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
+              pathname.startsWith('/market-analyzer')
+                ? 'text-emerald-400 font-semibold'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <span>Analizador de Mercado</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              HTTP Scanner
+            </span>
           </Link>
 
           <Link
@@ -149,7 +164,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Generador DNS
+            Generador RFC
           </Link>
 
           <Link
@@ -278,7 +293,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
           <button
             type="button"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
-            className="md:hidden text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-900 transition"
+            className="lg:hidden text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-900 transition"
             aria-label="Abrir menú"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -290,7 +305,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
       {/* MENÚ MÓVIL DESPLEGABLE                                    */}
       {/* ========================================================= */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-xl px-4 py-4 flex flex-col gap-2.5 animate-fade-in shadow-2xl">
+        <div className="lg:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-xl px-4 py-4 flex flex-col gap-2.5 animate-fade-in shadow-2xl">
           {/* Suite Switcher en móvil */}
           <div className="pb-2 mb-1 border-b border-slate-800/80">
             <SuiteSwitcher />
@@ -305,7 +320,24 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             }`}
           >
             <Search className="w-4 h-4 text-emerald-400" />
-            <span>Auditoría</span>
+            <span>Auditoría DNS</span>
+          </Link>
+
+          <Link
+            href="/market-analyzer"
+            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center justify-between transition ${
+              pathname.startsWith('/market-analyzer')
+                ? 'bg-emerald-500/10 text-emerald-400 font-semibold'
+                : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <SearchCode className="w-4 h-4 text-emerald-400" />
+              <span>Analizador de Mercado</span>
+            </div>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              HTTP Scanner
+            </span>
           </Link>
 
           <Link
@@ -317,7 +349,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             }`}
           >
             <Sparkles className="w-4 h-4 text-emerald-400" />
-            <span>Generador DNS</span>
+            <span>Generador RFC</span>
           </Link>
 
           <Link
