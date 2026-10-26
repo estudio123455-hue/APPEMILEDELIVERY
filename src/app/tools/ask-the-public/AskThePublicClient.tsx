@@ -21,8 +21,14 @@ import {
   CircleDot,
   LayoutGrid,
   ChevronRight,
+  FileText,
+  X,
+  Printer,
+  Sparkle,
 } from 'lucide-react';
 import type { AskPublicResponse, AskPublicCategories } from '@/types/ask-public';
+import type { MarketReportData } from '@/types/market-report';
+import PrintableMarketReport from '@/components/market/PrintableMarketReport';
 
 const CATEGORY_CONFIG: Record<
   keyof AskPublicCategories,
@@ -50,6 +56,12 @@ export default function AskThePublicClient() {
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('all');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
+  // Estados para el Generador de Informe Académico con IA
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [reportData, setReportData] = useState<MarketReportData | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
@@ -65,6 +77,8 @@ export default function AskThePublicClient() {
 
     setIsLoading(true);
     setErrorMsg(null);
+    setReportData(null);
+    setShowReportModal(false);
 
     try {
       const res = await fetch('/api/ask-public', {
@@ -83,6 +97,37 @@ export default function AskThePublicClient() {
       setErrorMsg(err instanceof Error ? err.message : 'Error al conectar con el servicio.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    if (!result) return;
+    setIsGeneratingReport(true);
+    setReportError(null);
+
+    try {
+      const res = await fetch('/api/market-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: result.searchTerm,
+          detectedTitle: result.detectedTitle,
+          isUrl: result.isUrl,
+          categories: result.categories,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success || !data.report) {
+        throw new Error(data.error || 'No se pudo generar el informe académico.');
+      }
+
+      setReportData(data.report);
+      setShowReportModal(true);
+    } catch (err: unknown) {
+      setReportError(err instanceof Error ? err.message : 'Error al generar el informe con IA.');
+    } finally {
+      setIsGeneratingReport(false);
     }
   };
 
@@ -263,7 +308,7 @@ export default function AskThePublicClient() {
       {result && !isLoading && (
         <div className="space-y-8 animate-fade-in">
           {/* Barra de Resumen & Acciones */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="p-5 sm:p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -286,7 +331,28 @@ export default function AskThePublicClient() {
             </div>
 
             {/* Alternador de Vista (Tarjetas vs Rueda) y Exportación */}
-            <div className="flex items-center gap-2 self-stretch md:self-auto justify-end flex-wrap">
+            <div className="flex items-center gap-2 self-stretch lg:self-auto justify-end flex-wrap">
+              {/* Botón Destacado: Generador de Informe Académico con IA */}
+              <button
+                type="button"
+                onClick={handleGenerateReport}
+                disabled={isGeneratingReport}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 text-slate-950 font-extrabold text-xs transition-all shadow-lg shadow-emerald-500/25 hover:brightness-110 active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                title="Resuelve la actividad de 4 puntos del PDF oficial con formato académico formal para entrega"
+              >
+                {isGeneratingReport ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-950" />
+                    <span>Redactando Informe con IA...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                    <span>Generar Informe Académico con IA (PDF)</span>
+                  </>
+                )}
+              </button>
+
               <div className="flex items-center p-1 rounded-xl bg-slate-950 border border-slate-800">
                 <button
                   type="button"
@@ -336,13 +402,42 @@ export default function AskThePublicClient() {
               <button
                 type="button"
                 onClick={downloadCSV}
-                className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow-sm shadow-emerald-500/20 active:scale-95"
+                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition flex items-center gap-1.5 border border-slate-700 shadow-sm"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Exportar CSV</span>
+                <span>CSV</span>
               </button>
             </div>
           </div>
+
+          {/* Banner de Estado de Generación de Informe */}
+          {isGeneratingReport && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-3 animate-pulse">
+              <RefreshCw className="w-4 h-4 animate-spin text-emerald-400 shrink-0" />
+              <div>
+                <strong className="text-white block font-semibold">
+                  La IA está estructurando la actividad oficial del PDF de Escucha Social...
+                </strong>
+                <span>
+                  Construyendo la matriz de 10 palabras clave, evidencias de los 3 objetivos, análisis táctico y dictamen de consultoría.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Error en generación de informe */}
+          {reportError && (
+            <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs flex items-center justify-between">
+              <span>{reportError}</span>
+              <button
+                type="button"
+                onClick={() => setReportError(null)}
+                className="text-xs text-rose-400 hover:underline"
+              >
+                Cerrar
+              </button>
+            </div>
+          )}
 
           {/* Banner de Conexión con DeliverabilityGuard si es dominio */}
           {result.analyzedDomain && (
@@ -610,12 +705,26 @@ export default function AskThePublicClient() {
 
           <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-3">
             <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">
-              <Download className="w-5 h-5" />
+              <FileText className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-white">Exportación en 1 Clic</h3>
+            <h3 className="text-base font-bold text-white">Informe Académico con IA</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Copia todas las preguntas estructuradas al portapapeles o descárgalas en formato CSV para alimentar tus calendarios de contenido y campañas SEO.
+              Resuelve al instante la actividad formal de 4 puntos del PDF de Escucha Social con matriz de 10 keywords, evidencias y conclusiones listo para imprimir en PDF.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL / VISUALIZADOR DEL INFORME ACADÉMICO EN PDF        */}
+      {/* ========================================================= */}
+      {showReportModal && reportData && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md overflow-y-auto print:static print:bg-white print:overflow-visible">
+          <div className="min-h-screen">
+            <PrintableMarketReport
+              report={reportData}
+              onClose={() => setShowReportModal(false)}
+            />
           </div>
         </div>
       )}
