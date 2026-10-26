@@ -337,18 +337,18 @@ export default function AskThePublicClient() {
                 type="button"
                 onClick={handleGenerateReport}
                 disabled={isGeneratingReport}
-                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 text-slate-950 font-extrabold text-xs transition-all shadow-lg shadow-emerald-500/25 hover:brightness-110 active:scale-95 flex items-center gap-2 disabled:opacity-50"
-                title="Resuelve la actividad de 4 puntos del PDF oficial con formato académico formal para entrega"
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 text-slate-950 font-extrabold text-xs transition-all shadow-lg shadow-emerald-500/25 hover:brightness-110 active:scale-95 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                title="Genera el informe formal de 5 tablas basado en Escucha Social y Benchmarking Digital"
               >
                 {isGeneratingReport ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-950" />
-                    <span>Redactando Informe con IA...</span>
+                    <span>Redactando Informe Académico...</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-3.5 h-3.5 text-slate-950" />
-                    <span>Generar Informe Académico con IA (PDF)</span>
+                    <span>✨ Generar Informe Académico IA (PDF)</span>
                   </>
                 )}
               </button>
@@ -416,10 +416,10 @@ export default function AskThePublicClient() {
               <RefreshCw className="w-4 h-4 animate-spin text-emerald-400 shrink-0" />
               <div>
                 <strong className="text-white block font-semibold">
-                  La IA está estructurando la actividad oficial del PDF de Escucha Social...
+                  La IA está analizando el mercado, competidores y redactando el informe académico...
                 </strong>
                 <span>
-                  Construyendo la matriz de 10 palabras clave, evidencias de los 3 objetivos, análisis táctico y dictamen de consultoría.
+                  Generando las 5 tablas oficiales: Matriz de 10 Keywords, FAQ con respuestas, Zeitgeist cultural, Triángulo Competitivo y Benchmark de Estrategias.
                 </span>
               </div>
             </div>

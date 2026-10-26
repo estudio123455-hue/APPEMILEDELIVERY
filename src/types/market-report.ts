@@ -1,10 +1,12 @@
 export interface ProjectInfo {
   title: string;
+  subtitle: string;
   analyzedEntity: string;
   date: string;
   industry: string;
   author?: string;
   institution?: string;
+  course?: string;
 }
 
 export interface Tabla1Keyword {
@@ -32,20 +34,46 @@ export interface Tabla3TendenciaArquetipo {
   zeitgeistCultural: string;
 }
 
-export interface Tabla4ComparativaCompetidor {
+export interface Tabla4TrianguloCompetitivo {
   id: number;
+  clasificacion:
+    | 'Competidor Directo 1'
+    | 'Competidor Directo 2'
+    | 'Referente Aspiracional'
+    | 'Competidor Indirecto'
+    | 'Competidor Inesperado';
   marca: string;
   propuestaValor: string;
-  sentimientoPredominante: string;
-  reputacionEntregaEmail: string;
-  puntosDebilesQuejas: string;
-  estrategiaDiferenciadora: string;
+  activosDigitalesClave: string;
+  ventajaCompetitiva: string;
+  amenazaOportunidad: string;
 }
 
-export interface ConclusionesPorObjetivo {
-  objetivo1_preguntas: string;
-  objetivo2_tendencias: string;
-  objetivo3_conversaciones: string;
+export interface Tabla5BenchmarkEstrategia {
+  id: number;
+  marca: string;
+  estrategiaAtraccion: {
+    canalesTrafico: string;
+    herramientasBenchmark: string;
+    metricasClave: string;
+  };
+  estrategiaContenido: {
+    formatosDominantes: string;
+    herramientasAnalisis: string;
+    tonoYEngagement: string;
+  };
+  estrategiaPublicitaria: {
+    plataformasActivas: string;
+    ganchosYTacticas: string;
+    bibliotecaAnuncios: string;
+  };
+}
+
+export interface ConclusionesFinales {
+  escuchaSocial: string;
+  benchmarkingDigital: string;
+  recomendacionesEstrategicas: string[];
+  dictamenConsultoria: string;
 }
 
 export interface MarketReportData {
@@ -53,8 +81,9 @@ export interface MarketReportData {
   tabla1_keywords: Tabla1Keyword[];
   tabla2_faq_respuestas: Tabla2FaqRespuesta[];
   tabla3_tendencias_arquetipos: Tabla3TendenciaArquetipo[];
-  tabla4_comparativa_competidores: Tabla4ComparativaCompetidor[];
-  conclusionesPorObjetivo: ConclusionesPorObjetivo;
+  tabla4_triangulo_competitivo: Tabla4TrianguloCompetitivo[];
+  tabla5_benchmark_estrategias: Tabla5BenchmarkEstrategia[];
+  conclusionesFinales: ConclusionesFinales;
 }
 
 export interface MarketReportResponse {
