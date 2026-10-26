@@ -13,6 +13,7 @@ import {
   X,
   Search,
   Briefcase,
+  Globe,
 } from 'lucide-react';
 import SuiteSwitcher from './SuiteSwitcher';
 import { createClient } from '@/utils/supabase/client';
@@ -121,6 +122,17 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             className="text-sm font-medium transition-colors text-slate-400 hover:text-white"
           >
             MiPortal Business
+          </Link>
+
+          <Link
+            href="/sites/builder"
+            className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
+              pathname.startsWith('/sites')
+                ? 'text-cyan-400 font-semibold'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <span>Bio & Sites</span>
           </Link>
 
           <Link
@@ -255,6 +267,18 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
           >
             <Briefcase className="w-4 h-4 text-cyan-400" />
             <span>MiPortal Business</span>
+          </Link>
+
+          <Link
+            href="/sites/builder"
+            className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2.5 transition ${
+              pathname.startsWith('/sites')
+                ? 'bg-cyan-500/10 text-cyan-400 font-semibold'
+                : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+            }`}
+          >
+            <Globe className="w-4 h-4 text-cyan-400" />
+            <span>Creador Bio & Sites</span>
           </Link>
 
           <Link

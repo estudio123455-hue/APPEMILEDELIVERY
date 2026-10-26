@@ -12,6 +12,7 @@ import {
   Check,
   ExternalLink,
   BookOpen,
+  Globe,
 } from 'lucide-react';
 
 interface SuiteProduct {
@@ -37,14 +38,14 @@ const SUITE_PRODUCTS: SuiteProduct[] = [
     activeWhen: (path) => path === '/' || path.startsWith('/dashboard'),
   },
   {
-    id: 'business',
-    name: 'MiPortal Business',
-    badge: 'Suite B2B',
-    description: 'Facturación rápida, cotizaciones de alta conversión y enlaces de cobro.',
-    href: '/#business-suite',
-    icon: Briefcase,
+    id: 'sites',
+    name: 'MiPortal Bio & Sites',
+    badge: 'Nuevo • Creador Web',
+    description: 'Páginas rápidas de negocio, enlaces comerciales y perfiles con verificación oficial.',
+    href: '/sites/builder',
+    icon: Globe,
     accentColor: 'text-cyan-400 bg-cyan-500/15 border-cyan-500/30',
-    activeWhen: () => false,
+    activeWhen: (path) => path.startsWith('/sites') || path.startsWith('/p/'),
   },
   {
     id: 'dns-tools',
@@ -55,6 +56,16 @@ const SUITE_PRODUCTS: SuiteProduct[] = [
     icon: Sparkles,
     accentColor: 'text-indigo-400 bg-indigo-500/15 border-indigo-500/30',
     activeWhen: (path) => path.startsWith('/tools/generator'),
+  },
+  {
+    id: 'business',
+    name: 'MiPortal Business',
+    badge: 'Suite B2B',
+    description: 'Facturación rápida, cotizaciones de alta conversión y cobros sin intermediarios.',
+    href: '/#business-suite',
+    icon: Briefcase,
+    accentColor: 'text-amber-400 bg-amber-500/15 border-amber-500/30',
+    activeWhen: () => false,
   },
 ];
 
