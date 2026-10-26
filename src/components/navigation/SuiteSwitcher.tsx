@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Shield,
-  Briefcase,
-  Sparkles,
   LayoutGrid,
   ChevronDown,
   Check,
@@ -31,17 +29,17 @@ const SUITE_PRODUCTS: SuiteProduct[] = [
     id: 'deliverability',
     name: 'DeliverabilityGuard',
     badge: 'Motor RFC',
-    description: 'Auditoría DNS autoritativa, DMARC/SPF, listas negras DNSBL y cifrado TLS.',
+    description: 'Auditoría DNS, SPF, DMARC, DNSBL y STARTTLS.',
     href: '/',
     icon: Shield,
     accentColor: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30',
-    activeWhen: (path) => path === '/' || path.startsWith('/dashboard'),
+    activeWhen: (path) => path === '/' || path.startsWith('/dashboard') || path.startsWith('/tools'),
   },
   {
     id: 'sites',
     name: 'MiPortal Bio & Sites',
     badge: 'Creador Web',
-    description: 'Páginas comerciales rápidas, enlaces verificados y catálogo de servicios.',
+    description: 'Creador de páginas comerciales y enlaces.',
     href: '/sites/builder',
     icon: Globe,
     accentColor: 'text-cyan-400 bg-cyan-500/15 border-cyan-500/30',
@@ -51,21 +49,11 @@ const SUITE_PRODUCTS: SuiteProduct[] = [
     id: 'business',
     name: 'MiPortal Facturas',
     badge: 'Suite B2B',
-    description: 'Cotizaciones rápidas, facturación y cobros digitales sin comisiones ocultas.',
+    description: 'Cotizaciones y cobros digitales.',
     href: '/#business-suite',
     icon: Receipt,
     accentColor: 'text-amber-400 bg-amber-500/15 border-amber-500/30',
     activeWhen: () => false,
-  },
-  {
-    id: 'dns-tools',
-    name: 'DNS Tools & Wizard',
-    badge: 'Asistente',
-    description: 'Generador guiado para Squarespace, Cloudflare, GoDaddy y Namecheap.',
-    href: '/tools/generator',
-    icon: Sparkles,
-    accentColor: 'text-indigo-400 bg-indigo-500/15 border-indigo-500/30',
-    activeWhen: (path) => path.startsWith('/tools/generator'),
   },
 ];
 
@@ -85,23 +73,19 @@ export default function SuiteSwitcher() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Determine current active product
-  const activeProduct =
-    SUITE_PRODUCTS.find((p) => p.activeWhen(pathname)) || SUITE_PRODUCTS[0];
-
   return (
     <div className="relative inline-block text-left" ref={containerRef}>
-      {/* Selector de Suite: Botón compacto con borde fino */}
+      {/* Botón compacto estilo Vercel / Linear */}
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         className="bg-slate-900/60 hover:bg-slate-800/80 border border-slate-700/60 rounded-lg px-2.5 py-1 text-xs text-slate-300 flex items-center gap-1.5 transition-colors group"
         aria-expanded={isOpen}
         aria-haspopup="true"
-        title="Cambiar de producto en la Suite MiPortal"
+        title="Ecosistema Suite MiPortal"
       >
         <LayoutGrid className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
-        <span className="font-medium text-slate-200">{activeProduct.name}</span>
+        <span className="font-medium text-slate-200">Suite MiPortal</span>
         <ChevronDown
           className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${
             isOpen ? 'rotate-180 text-emerald-400' : ''
@@ -111,18 +95,18 @@ export default function SuiteSwitcher() {
 
       {/* Menú flotante desplegable */}
       {isOpen && (
-        <div className="absolute left-0 mt-2 w-[320px] sm:w-[350px] rounded-2xl bg-slate-950/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-2.5 z-50 animate-fade-in divide-y divide-slate-800/80">
+        <div className="absolute left-0 mt-2 w-[310px] sm:w-[340px] rounded-2xl bg-slate-950/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-2.5 z-50 animate-fade-in divide-y divide-slate-800/80">
           {/* Header */}
           <div className="pb-2 px-2 flex items-center justify-between">
             <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
-              Suite MiPortal
+              Ecosistema MiPortal
             </span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
-              Ecosistema
+              3 Herramientas
             </span>
           </div>
 
-          {/* Lista de Productos */}
+          {/* 3 Opciones Oficiales */}
           <div className="py-2 space-y-1">
             {SUITE_PRODUCTS.map((product) => {
               const Icon = product.icon;
@@ -167,7 +151,7 @@ export default function SuiteSwitcher() {
               className="hover:text-emerald-400 transition flex items-center gap-1.5 font-medium"
             >
               <BookOpen className="w-3 h-3 text-slate-400" />
-              <span>Guía Técnica & Normativas RFC</span>
+              <span>Guía Técnica & RFCs</span>
             </Link>
             <span className="text-[10px] font-mono text-slate-500">v2.4</span>
           </div>

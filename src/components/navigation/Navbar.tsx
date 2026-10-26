@@ -5,15 +5,15 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Shield,
-  Sparkles,
   LayoutDashboard,
   ShieldCheck,
   LogOut,
   Menu,
   X,
   Search,
+  Sparkles,
+  BookOpen,
   Globe,
-  TrendingUp,
 } from 'lucide-react';
 import SuiteSwitcher from './SuiteSwitcher';
 import { createClient } from '@/utils/supabase/client';
@@ -32,7 +32,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Sync session and auth state
+  // Sync auth state
   useEffect(() => {
     if (initialUser !== undefined) {
       setUser(initialUser);
@@ -97,7 +97,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
     user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario';
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-slate-950/75 backdrop-blur-md print:hidden">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* ========================================================= */}
         {/* ZONA IZQUIERDA: IDENTIDAD & SUITE SWITCHER                */}
@@ -117,19 +117,19 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             </span>
           </Link>
 
-          {/* Separador sutil */}
-          <div className="h-4 w-px bg-slate-800 mx-1.5 sm:mx-2 hidden sm:block" />
+          {/* Barra vertical divisoria tenue */}
+          <div className="h-4 w-px bg-slate-800 mx-2 hidden sm:block" />
 
-          {/* Selector de Suite Minimalista */}
+          {/* Selector de Suite Compacto */}
           <div className="hidden sm:block">
             <SuiteSwitcher />
           </div>
         </div>
 
         {/* ========================================================= */}
-        {/* ZONA CENTRAL: NAVEGACIÓN LIMPIA (DESKTOP)                 */}
+        {/* ZONA CENTRAL: ENLACES PRINCIPALES (DESKTOP)               */}
         {/* ========================================================= */}
-        <nav className="hidden md:flex items-center gap-5 lg:gap-7">
+        <nav className="hidden md:flex items-center gap-8">
           <Link
             href="/"
             className={`text-sm font-medium transition-colors ${
@@ -138,64 +138,39 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Auditoría DNS
-          </Link>
-
-          <Link
-            href="/market-analysis"
-            className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
-              pathname.startsWith('/market-analysis')
-                ? 'text-emerald-400 font-semibold'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <span>Análisis de Mercado</span>
-            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded-full border border-emerald-500/25 font-bold">
-              Nuevo
-            </span>
+            Auditoría
           </Link>
 
           <Link
             href="/tools/generator"
-            className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
+            className={`text-sm font-medium transition-colors ${
               pathname.startsWith('/tools/generator')
                 ? 'text-emerald-400 font-semibold'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <span>Generador RFC</span>
+            Generador DNS
           </Link>
 
           <Link
             href="/guide"
-            className={`transition-all text-sm font-medium ${
+            className={`text-sm font-medium transition-colors ${
               pathname.startsWith('/guide')
-                ? 'bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full font-semibold border border-emerald-500/20'
+                ? 'text-emerald-400 font-semibold'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Guía Técnica
-          </Link>
-
-          <Link
-            href="/sites/builder"
-            className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
-              pathname.startsWith('/sites')
-                ? 'text-cyan-400 font-semibold'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <span>Bio & Sites</span>
+            Guía RFC
           </Link>
         </nav>
 
         {/* ========================================================= */}
-        {/* ZONA DERECHA: ACCIONES & USUARIO                          */}
+        {/* ZONA DERECHA: SESIÓN & DASHBOARD                          */}
         {/* ========================================================= */}
         <div className="flex items-center gap-2 sm:gap-3">
           {user ? (
-            <div className="flex items-center gap-2 sm:gap-2.5">
-              {/* Botón Dashboard */}
+            <div className="flex items-center gap-2.5">
+              {/* Botón Estilizado a Dashboard */}
               <Link
                 href="/dashboard"
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 border shadow-sm active:scale-95 ${
@@ -209,7 +184,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                 <span className="hidden sm:inline">Dashboard</span>
               </Link>
 
-              {/* Avatar / Perfil Desplegable */}
+              {/* Avatar / Menú Desplegable de Perfil */}
               <div className="relative" ref={userMenuRef}>
                 <button
                   type="button"
@@ -217,10 +192,10 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                   className="w-8 h-8 rounded-full bg-slate-900 border border-slate-700/70 hover:border-emerald-500/50 flex items-center justify-center text-emerald-400 font-bold text-xs transition relative group focus:outline-none"
                   aria-expanded={userMenuOpen}
                   aria-haspopup="true"
-                  title={`Sesión iniciada como ${userDisplayName}`}
+                  title={`Sesión activa: ${userDisplayName}`}
                 >
                   <span>{userInitial}</span>
-                  {/* Badge de sesión activa */}
+                  {/* Punto verde de sesión activa */}
                   <span className="w-2 h-2 rounded-full bg-emerald-400 border-2 border-slate-950 absolute -bottom-0.5 -right-0.5" />
                 </button>
 
@@ -237,7 +212,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                       </p>
                     </div>
 
-                    {/* Enlaces de Cuenta */}
+                    {/* Enlaces Rápidos de Cuenta */}
                     <div className="py-1.5 space-y-0.5">
                       <Link
                         href="/dashboard"
@@ -294,7 +269,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                 href="/register"
                 className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold px-3.5 py-1.5 rounded-lg text-sm shadow-sm shadow-emerald-500/20 transition-all active:scale-[0.98]"
               >
-                Comenzar Gratis
+                Comenzar gratis
               </Link>
             </div>
           )}
@@ -330,24 +305,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             }`}
           >
             <Search className="w-4 h-4 text-emerald-400" />
-            <span>Auditoría DNS</span>
-          </Link>
-
-          <Link
-            href="/market-analysis"
-            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center justify-between transition ${
-              pathname.startsWith('/market-analysis')
-                ? 'bg-emerald-500/10 text-emerald-400 font-semibold'
-                : 'text-slate-300 hover:bg-slate-900 hover:text-white'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <TrendingUp className="w-4 h-4 text-emerald-400" />
-              <span>Análisis de Mercado</span>
-            </div>
-            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20 font-bold">
-              Nuevo
-            </span>
+            <span>Auditoría</span>
           </Link>
 
           <Link
@@ -359,7 +317,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             }`}
           >
             <Sparkles className="w-4 h-4 text-emerald-400" />
-            <span>Generador RFC (SPF & DMARC)</span>
+            <span>Generador DNS</span>
           </Link>
 
           <Link
@@ -370,20 +328,8 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                 : 'text-slate-300 hover:bg-slate-900 hover:text-white'
             }`}
           >
-            <Shield className="w-4 h-4 text-emerald-400" />
-            <span>Guía Técnica & Normativas</span>
-          </Link>
-
-          <Link
-            href="/sites/builder"
-            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2.5 transition ${
-              pathname.startsWith('/sites')
-                ? 'bg-cyan-500/10 text-cyan-400 font-semibold'
-                : 'text-slate-300 hover:bg-slate-900 hover:text-white'
-            }`}
-          >
-            <Globe className="w-4 h-4 text-cyan-400" />
-            <span>Bio & Sites</span>
+            <BookOpen className="w-4 h-4 text-emerald-400" />
+            <span>Guía RFC</span>
           </Link>
 
           {/* Menú de Usuario en móvil */}
@@ -436,7 +382,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                 href="/register"
                 className="w-full text-center py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold rounded-xl text-sm shadow-md shadow-emerald-500/20"
               >
-                Comenzar Gratis
+                Comenzar gratis
               </Link>
             </div>
           )}
