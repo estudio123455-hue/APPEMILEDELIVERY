@@ -24,12 +24,8 @@ import {
 import type { AskPublicResponse, AskPublicCategories } from '@/types/ask-public';
 import type { BusinessModelWheelData, BusinessModelCategory, BusinessModelNode } from '@/types/market-report';
 
-interface AnswerThePublicWheelProps {
-  result: AskPublicResponse;
-  businessModelWheel?: BusinessModelWheelData;
-  onGenerateBusinessModel?: () => void;
-  isGeneratingBusinessModel?: boolean;
-}
+export type WheelType = 'questions' | 'business_model';
+export type DiagramMode = 'radial' | 'tree';
 
 const CATEGORY_COLORS: Record<string, { label: string; color: string; bg: string }> = {
   que: { label: 'Qué', color: '#10b981', bg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' },
@@ -43,8 +39,12 @@ const CATEGORY_COLORS: Record<string, { label: string; color: string; bg: string
   son: { label: 'Son', color: '#f97316', bg: 'bg-orange-500/20 text-orange-400 border-orange-500/40' },
 };
 
-type WheelType = 'questions' | 'business_model';
-type DiagramMode = 'radial' | 'tree';
+interface AnswerThePublicWheelProps {
+  result: AskPublicResponse;
+  businessModelWheel?: BusinessModelWheelData;
+  activeWheelTab?: WheelType;
+  onWheelTabChange?: (tab: WheelType) => void;
+}
 
 interface SelectedNodeInfo {
   title: string;
@@ -57,11 +57,19 @@ interface SelectedNodeInfo {
 export default function AnswerThePublicWheel({
   result,
   businessModelWheel,
-  onGenerateBusinessModel,
-  isGeneratingBusinessModel,
+  activeWheelTab,
+  onWheelTabChange,
 }: AnswerThePublicWheelProps) {
   // Selector de Rueda 1 (Preguntas) vs Rueda 2 (Modelo de Negocio con IA)
-  const [wheelType, setWheelType] = useState<WheelType>('questions');
+  const [internalWheelType, setInternalWheelType] = useState<WheelType>('questions');
+  const wheelType = activeWheelTab ?? internalWheelType;
+
+  const handleWheelTypeChange = (nextType: WheelType) => {
+    setInternalWheelType(nextType);
+    onWheelTabChange?.(nextType);
+    handleReset();
+  };
+
   const [mode, setMode] = useState<DiagramMode>('radial');
 
   // Canvas Viewport Pan & Zoom
@@ -314,10 +322,7 @@ export default function AnswerThePublicWheel({
         <div className="pointer-events-auto flex items-center p-1 rounded-2xl bg-slate-900/95 border border-slate-700/80 shadow-2xl backdrop-blur-xl">
           <button
             type="button"
-            onClick={() => {
-              setWheelType('questions');
-              handleReset();
-            }}
+            onClick={() => handleWheelTypeChange('questions')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
               wheelType === 'questions'
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md'
@@ -325,18 +330,12 @@ export default function AnswerThePublicWheel({
             }`}
           >
             <CircleDot className="w-3.5 h-3.5" />
-            <span>Rueda 1: Escucha de Preguntas</span>
+            <span>🌐 Rueda 1: Escucha Social (Preguntas Google)</span>
           </button>
 
           <button
             type="button"
-            onClick={() => {
-              setWheelType('business_model');
-              handleReset();
-              if (!businessModelWheel && onGenerateBusinessModel) {
-                onGenerateBusinessModel();
-              }
-            }}
+            onClick={() => handleWheelTypeChange('business_model')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
               wheelType === 'business_model'
                 ? 'bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 text-slate-950 shadow-md'
@@ -344,11 +343,11 @@ export default function AnswerThePublicWheel({
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-slate-950" />
-            <span>Rueda 2: Modelo de Negocio & IA</span>
+            <span>⚡ Rueda 2: Modelo de Negocio & Estrategia IA</span>
           </button>
         </div>
 
-        {/* Selector de Modo de Diagrama (Radial vs Árbol) y Zoom */}
+        {/* Selector de Modo de Diagrama (Radial Sunburst vs Árbol Jerárquico) y Zoom */}
         <div className="pointer-events-auto flex items-center gap-2 flex-wrap">
           <div className="flex items-center p-1 rounded-2xl bg-slate-900/95 border border-slate-700/80 shadow-2xl backdrop-blur-xl">
             <button
@@ -364,7 +363,7 @@ export default function AnswerThePublicWheel({
               }`}
             >
               <CircleDot className="w-3.5 h-3.5" />
-              <span>Radial</span>
+              <span>Radial Sunburst</span>
             </button>
 
             <button
@@ -380,7 +379,7 @@ export default function AnswerThePublicWheel({
               }`}
             >
               <GitFork className="w-3.5 h-3.5" />
-              <span>Árbol (Mindmap)</span>
+              <span>Árbol Jerárquico (Mindmap)</span>
             </button>
           </div>
 
@@ -407,10 +406,11 @@ export default function AnswerThePublicWheel({
             <button
               type="button"
               onClick={handleReset}
-              className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-              title="Centrar Vista"
+              className="px-2.5 py-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer font-medium flex items-center gap-1"
+              title="Centrar Vista (Reset 100%)"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset 100%</span>
             </button>
 
             <div className="h-4 w-px bg-slate-700 mx-1" />
@@ -422,17 +422,17 @@ export default function AnswerThePublicWheel({
               title="Descargar SVG Vectorial"
             >
               <Download className="w-3.5 h-3.5 text-emerald-400" />
-              <span>SVG</span>
+              <span>Descargar SVG</span>
             </button>
 
             <button
               type="button"
               onClick={downloadPNG}
               className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition flex items-center gap-1 font-bold cursor-pointer"
-              title="Descargar Imagen PNG"
+              title="Exportar Imagen PNG Alta Resolución (2400x2400)"
             >
               <Download className="w-3.5 h-3.5 text-emerald-400" />
-              <span>PNG</span>
+              <span>Exportar PNG (2400x2400)</span>
             </button>
           </div>
         </div>
@@ -875,16 +875,17 @@ export default function AnswerThePublicWheel({
               <g className="cursor-pointer" onClick={() => handleReset()}>
                 <circle r="60" fill="#020617" stroke="#06b6d4" strokeWidth="3.5" filter="url(#glow)" />
                 <circle r="56" fill="none" stroke="#10b981" strokeWidth="1" strokeDasharray="3 3" />
-                <text textAnchor="middle" y="-14" fill="#06b6d4" fontSize="8.5" fontWeight="bold" letterSpacing="1">
-                  NÚCLEO ESTRATÉGICO
+                <rect x="-50" y="-26" width="100" height="15" rx="7.5" fill="#06b6d4" fillOpacity="0.2" stroke="#06b6d4" strokeWidth="1" />
+                <text textAnchor="middle" y="-15" fill="#38bdf8" fontSize="8" fontWeight="bold" letterSpacing="0.8">
+                  MODELO DE NEGOCIO
                 </text>
-                <text textAnchor="middle" y="6" fill="#ffffff" fontSize="13" fontWeight="900" className="font-mono">
+                <text textAnchor="middle" y="5" fill="#ffffff" fontSize="13" fontWeight="900" className="font-mono">
                   {effectiveBusinessModel.coreEntity.length > 16
                     ? `${effectiveBusinessModel.coreEntity.slice(0, 16)}...`
                     : effectiveBusinessModel.coreEntity}
                 </text>
-                <text textAnchor="middle" y="24" fill="#10b981" fontSize="9.5" fontWeight="bold">
-                  Modelo de Negocio & IA
+                <text textAnchor="middle" y="23" fill="#10b981" fontSize="9.5" fontWeight="bold">
+                  Estrategia & IA
                 </text>
               </g>
             </g>
@@ -898,10 +899,11 @@ export default function AnswerThePublicWheel({
               {/* Raíz Izquierda */}
               <g transform="translate(90, 320)">
                 <rect x="-80" y="-30" width="160" height="60" rx="14" fill="#020617" stroke="#06b6d4" strokeWidth="2.5" filter="url(#glow)" />
-                <text textAnchor="middle" y="-8" fill="#06b6d4" fontSize="9" fontWeight="bold">
-                  NÚCLEO ESTRATÉGICO
+                <rect x="-55" y="-23" width="110" height="14" rx="7" fill="#06b6d4" fillOpacity="0.2" stroke="#06b6d4" strokeWidth="1" />
+                <text textAnchor="middle" y="-13" fill="#38bdf8" fontSize="8" fontWeight="bold" letterSpacing="0.8">
+                  MODELO DE NEGOCIO
                 </text>
-                <text textAnchor="middle" y="12" fill="#ffffff" fontSize="13" fontWeight="900">
+                <text textAnchor="middle" y="10" fill="#ffffff" fontSize="13" fontWeight="900">
                   {effectiveBusinessModel.coreEntity.length > 14
                     ? `${effectiveBusinessModel.coreEntity.slice(0, 14)}...`
                     : effectiveBusinessModel.coreEntity}

@@ -29,7 +29,7 @@ import {
 import type { AskPublicResponse, AskPublicCategories } from '@/types/ask-public';
 import type { MarketReportData } from '@/types/market-report';
 import PrintableMarketReport from '@/components/market/PrintableMarketReport';
-import AnswerThePublicWheel from '@/components/tools/AnswerThePublicWheel';
+import AnswerThePublicWheel, { type WheelType } from '@/components/tools/AnswerThePublicWheel';
 
 const CATEGORY_CONFIG: Record<
   keyof AskPublicCategories,
@@ -54,6 +54,7 @@ export default function AskThePublicClient() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [result, setResult] = useState<AskPublicResponse | null>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'wheel'>('cards');
+  const [activeWheelTab, setActiveWheelTab] = useState<WheelType>('questions');
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('all');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -80,6 +81,7 @@ export default function AskThePublicClient() {
     setErrorMsg(null);
     setReportData(null);
     setShowReportModal(false);
+    setActiveWheelTab('questions');
 
     try {
       const res = await fetch('/api/ask-public', {
@@ -472,11 +474,46 @@ export default function AskThePublicClient() {
           {/* ========================================================= */}
           {viewMode === 'wheel' && (
             <div className="space-y-4">
+              {/* Selector de Rueda Desacoplado: Rueda 1 vs Rueda 2 */}
+              <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 rounded-2xl bg-slate-900/70 border border-slate-800">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveWheelTab('questions')}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                      activeWheelTab === 'questions'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
+                    }`}
+                  >
+                    <CircleDot className="w-3.5 h-3.5" />
+                    <span>🌐 Rueda 1: Escucha Social (Preguntas Google)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveWheelTab('business_model')}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                      activeWheelTab === 'business_model'
+                        ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>⚡ Rueda 2: Modelo de Negocio & Estrategia IA</span>
+                  </button>
+                </div>
+                <div className="text-xs text-slate-400 px-2 hidden sm:block">
+                  {activeWheelTab === 'questions'
+                    ? 'Preguntas reales en tiempo real desde Google Suggest'
+                    : '5 ejes estratégicos interactivos (0ms latencia, sin modales de reporte)'}
+                </div>
+              </div>
+
               <AnswerThePublicWheel
                 result={result}
                 businessModelWheel={reportData?.businessModelWheel}
-                onGenerateBusinessModel={handleGenerateReport}
-                isGeneratingBusinessModel={isGeneratingReport}
+                activeWheelTab={activeWheelTab}
+                onWheelTabChange={setActiveWheelTab}
               />
             </div>
           )}
