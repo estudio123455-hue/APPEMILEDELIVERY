@@ -29,6 +29,7 @@ import {
 import type { AskPublicResponse, AskPublicCategories } from '@/types/ask-public';
 import type { MarketReportData } from '@/types/market-report';
 import PrintableMarketReport from '@/components/market/PrintableMarketReport';
+import AnswerThePublicWheel from '@/components/tools/AnswerThePublicWheel';
 
 const CATEGORY_CONFIG: Record<
   keyof AskPublicCategories,
@@ -467,82 +468,11 @@ export default function AskThePublicClient() {
           )}
 
           {/* ========================================================= */}
-          {/* VISTA 1: VISTA DE RUEDA VISUAL (SIGNATURE ANSWERTHEPUBLIC)*/}
+          {/* VISTA 1: DIAGRAMAS VECTORIALES (RUEDA & ÁRBOL HORIZONTAL) */}
           {/* ========================================================= */}
           {viewMode === 'wheel' && (
-            <div className="p-6 sm:p-10 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-2xl relative overflow-hidden">
-              <div className="text-center mb-6">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                  Rueda de Preguntas (Radial Wheel)
-                </span>
-                <h3 className="text-xl font-bold text-white mt-1">
-                  Mapeo Circular de Intenciones de Búsqueda
-                </h3>
-              </div>
-
-              {/* Rueda en Pantalla Grande / Mediana */}
-              <div className="relative min-h-[620px] flex items-center justify-center p-4">
-                {/* Nodo Central */}
-                <div className="z-20 w-36 h-36 rounded-full bg-slate-950 border-4 border-emerald-500 shadow-2xl shadow-emerald-500/30 flex flex-col items-center justify-center text-center p-3 animate-pulse">
-                  <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">
-                    Búsqueda Raíz
-                  </span>
-                  <span className="text-sm font-extrabold text-white line-clamp-2 leading-tight">
-                    {result.searchTerm}
-                  </span>
-                  <span className="text-[10px] text-slate-400 mt-1 font-mono">
-                    {result.totalQuestions} consultas
-                  </span>
-                </div>
-
-                {/* Órbitas / Pétalos por Categoría en Cuadrantes */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl z-10">
-                  {(Object.keys(result.categories) as Array<keyof AskPublicCategories>).map((cat) => {
-                    const conf = CATEGORY_CONFIG[cat];
-                    const list = result.categories[cat];
-
-                    return (
-                      <div
-                        key={cat}
-                        className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800 hover:border-slate-700 transition space-y-2.5 shadow-lg group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span
-                            className="text-xs font-black px-2.5 py-1 rounded-lg border uppercase tracking-wider"
-                            style={{
-                              color: conf.color,
-                              borderColor: `${conf.color}40`,
-                              backgroundColor: `${conf.color}15`,
-                            }}
-                          >
-                            {conf.label}
-                          </span>
-                          <span className="text-[11px] text-slate-500 font-mono">
-                            {list.length} preguntas
-                          </span>
-                        </div>
-
-                        <div className="space-y-1.5 pt-1">
-                          {list.slice(0, 4).map((q, idx) => (
-                            <a
-                              key={idx}
-                              href={`https://www.google.com/search?q=${encodeURIComponent(q)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block p-2 rounded-lg bg-slate-900/90 hover:bg-slate-800/90 text-[11px] text-slate-300 hover:text-white transition group/link relative"
-                            >
-                              <div className="flex items-start justify-between gap-1.5">
-                                <span className="line-clamp-2 leading-snug">{q}</span>
-                                <ExternalLink className="w-3 h-3 text-slate-500 group-hover/link:text-emerald-400 shrink-0 mt-0.5" />
-                              </div>
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+            <div className="space-y-4">
+              <AnswerThePublicWheel result={result} />
             </div>
           )}
 
