@@ -10,7 +10,6 @@ import {
   Check,
   Globe,
   Receipt,
-  SearchCode,
 } from 'lucide-react';
 
 interface SuiteProduct {
@@ -34,16 +33,6 @@ const SUITE_PRODUCTS: SuiteProduct[] = [
     icon: Shield,
     accentColor: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30',
     activeWhen: (path) => path === '/' || path.startsWith('/dashboard') || path.startsWith('/tools') || path.startsWith('/guide'),
-  },
-  {
-    id: 'market-analyzer',
-    name: 'Analizador de Mercado',
-    badge: 'HTTP Scanner',
-    description: 'Escucha social, AnswerThePublic y Google Trends.',
-    href: '/market-analyzer',
-    icon: SearchCode,
-    accentColor: 'text-teal-400 bg-teal-500/15 border-teal-500/30',
-    activeWhen: (path) => path.startsWith('/market-analyzer'),
   },
   {
     id: 'sites',

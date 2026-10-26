@@ -14,7 +14,7 @@ import {
   Sparkles,
   BookOpen,
   Globe,
-  SearchCode,
+  Radio,
 } from 'lucide-react';
 import SuiteSwitcher from './SuiteSwitcher';
 import { createClient } from '@/utils/supabase/client';
@@ -101,24 +101,24 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
     <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* ========================================================= */}
-        {/* ZONA IZQUIERDA: IDENTIDAD & SUITE SWITCHER                */}
+        {/* ZONA IZQUIERDA: BRANDING & SWITCHER                       */}
         {/* ========================================================= */}
         <div className="flex items-center gap-2 sm:gap-2.5">
-          {/* Logo Principal */}
+          {/* Logo Principal con Isotipo Escudo Esmeralda */}
           <Link
             href="/"
             className="flex items-center gap-2.5 group transition-transform active:scale-[0.98]"
-            title="MiPortal Suite — DeliverabilityGuard"
+            title="DeliverabilityGuard — Suite MiPortal"
           >
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-slate-950 transition-all group-hover:shadow-emerald-500/35">
               <Shield className="w-4 h-4 fill-slate-950/20 stroke-[2.5]" />
             </div>
             <span className="font-semibold text-white tracking-tight text-base sm:text-lg">
-              MiPortal
+              DeliverabilityGuard
             </span>
           </Link>
 
-          {/* Barra vertical divisoria tenue */}
+          {/* Barra divisoria vertical sutil */}
           <div className="h-4 w-px bg-slate-800 mx-2 hidden sm:block" />
 
           {/* Selector de Suite Compacto */}
@@ -128,9 +128,9 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
         </div>
 
         {/* ========================================================= */}
-        {/* ZONA CENTRAL: ENLACES PRINCIPALES (DESKTOP)               */}
+        {/* ZONA CENTRAL: NAVEGACIÓN LIMPIA (DESKTOP)                 */}
         {/* ========================================================= */}
-        <nav className="hidden lg:flex items-center gap-7">
+        <nav className="hidden lg:flex items-center gap-8">
           <Link
             href="/"
             className={`text-sm font-medium transition-colors ${
@@ -143,16 +143,16 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
           </Link>
 
           <Link
-            href="/market-analyzer"
+            href="/tools/ask-the-public"
             className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
-              pathname.startsWith('/market-analyzer')
+              pathname.startsWith('/tools/ask-the-public')
                 ? 'text-emerald-400 font-semibold'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <span>Analizador de Mercado</span>
+            <span>Escucha de Mercado</span>
             <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              HTTP Scanner
+              En Vivo
             </span>
           </Link>
 
@@ -164,7 +164,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Generador RFC
+            Generador DNS
           </Link>
 
           <Link
@@ -185,7 +185,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
         <div className="flex items-center gap-2 sm:gap-3">
           {user ? (
             <div className="flex items-center gap-2.5">
-              {/* Botón Estilizado a Dashboard */}
+              {/* Botón Directo al Dashboard */}
               <Link
                 href="/dashboard"
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 border shadow-sm active:scale-95 ${
@@ -210,14 +210,12 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                   title={`Sesión activa: ${userDisplayName}`}
                 >
                   <span>{userInitial}</span>
-                  {/* Punto verde de sesión activa */}
                   <span className="w-2 h-2 rounded-full bg-emerald-400 border-2 border-slate-950 absolute -bottom-0.5 -right-0.5" />
                 </button>
 
-                {/* Dropdown de Usuario */}
+                {/* Dropdown de Usuario con Logout adentro */}
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-slate-950/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-2 z-50 animate-fade-in divide-y divide-slate-800/80">
-                    {/* Header del Perfil */}
                     <div className="px-3 py-2">
                       <p className="text-xs font-bold text-slate-100 truncate">
                         {userDisplayName}
@@ -227,7 +225,6 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                       </p>
                     </div>
 
-                    {/* Enlaces Rápidos de Cuenta */}
                     <div className="py-1.5 space-y-0.5">
                       <Link
                         href="/dashboard"
@@ -257,7 +254,6 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                       </Link>
                     </div>
 
-                    {/* Botón Cerrar Sesión en Rojo Suave */}
                     <div className="pt-1.5">
                       <button
                         type="button"
@@ -306,7 +302,6 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
       {/* ========================================================= */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-xl px-4 py-4 flex flex-col gap-2.5 animate-fade-in shadow-2xl">
-          {/* Suite Switcher en móvil */}
           <div className="pb-2 mb-1 border-b border-slate-800/80">
             <SuiteSwitcher />
           </div>
@@ -324,19 +319,19 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
           </Link>
 
           <Link
-            href="/market-analyzer"
+            href="/tools/ask-the-public"
             className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center justify-between transition ${
-              pathname.startsWith('/market-analyzer')
+              pathname.startsWith('/tools/ask-the-public')
                 ? 'bg-emerald-500/10 text-emerald-400 font-semibold'
                 : 'text-slate-300 hover:bg-slate-900 hover:text-white'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <SearchCode className="w-4 h-4 text-emerald-400" />
-              <span>Analizador de Mercado</span>
+              <Radio className="w-4 h-4 text-emerald-400" />
+              <span>Escucha de Mercado</span>
             </div>
             <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              HTTP Scanner
+              En Vivo
             </span>
           </Link>
 
@@ -349,7 +344,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             }`}
           >
             <Sparkles className="w-4 h-4 text-emerald-400" />
-            <span>Generador RFC</span>
+            <span>Generador DNS</span>
           </Link>
 
           <Link
@@ -364,7 +359,6 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             <span>Guía RFC</span>
           </Link>
 
-          {/* Menú de Usuario en móvil */}
           {user ? (
             <div className="pt-3 border-t border-slate-800/80 flex flex-col gap-2">
               <div className="flex items-center gap-2.5 px-3 py-1.5 text-xs text-slate-300">
