@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -12,14 +12,16 @@ import {
   Menu,
   X,
   Search,
-  Briefcase,
   Globe,
+  User as UserIcon,
+  ChevronDown,
+  ExternalLink,
 } from 'lucide-react';
 import SuiteSwitcher from './SuiteSwitcher';
 import { createClient } from '@/utils/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
-interface NavbarProps {
+export interface NavbarProps {
   initialUser?: User | null;
   onSignOut?: () => void;
 }
@@ -29,7 +31,10 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(initialUser ?? null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
+  // Sync session and auth state
   useEffect(() => {
     if (initialUser !== undefined) {
       setUser(initialUser);
@@ -50,19 +55,33 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
     return () => subscription.unsubscribe();
   }, [initialUser]);
 
-  // Cerrar menú móvil al cambiar de ruta
+  // Close menus on route change
   useEffect(() => {
     setMobileMenuOpen(false);
+    setUserMenuOpen(false);
   }, [pathname]);
+
+  // Close user dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSignOut = async () => {
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
       setUser(null);
+      setUserMenuOpen(false);
       if (onSignOut) {
         onSignOut();
       } else {
+        router.push('/');
         router.refresh();
       }
     } catch (err) {
@@ -77,20 +96,22 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
   )[0].toUpperCase();
 
   const userDisplayName =
-    user?.user_metadata?.full_name || user?.email || 'Usuario';
+    user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario';
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-md print:hidden">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-slate-950/75 backdrop-blur-md print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* ========================================================= */}
-        {/* LADO IZQUIERDO: BRANDING LIMPIO & SUITE SWITCHER          */}
+        {/* ZONA IZQUIERDA: IDENTIDAD & SUITE SWITCHER                */}
         {/* ========================================================= */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Logo Principal */}
           <Link
             href="/"
             className="flex items-center gap-2.5 group transition-transform active:scale-[0.98]"
+            title="DeliverabilityGuard — Suite MiPortal"
           >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-slate-950 transition-all group-hover:shadow-emerald-500/30">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-slate-950 transition-all group-hover:shadow-emerald-500/35">
               <Shield className="w-4 h-4 fill-slate-950/20 stroke-[2.5]" />
             </div>
             <span className="font-semibold text-white tracking-tight text-base sm:text-lg">
@@ -98,12 +119,17 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             </span>
           </Link>
 
-          {/* Suite Switcher (Selector de Productos MiPortal) */}
-          <SuiteSwitcher />
+          {/* Separador sutil */}
+          <div className="h-4 w-px bg-slate-800 mx-1.5 sm:mx-2 hidden sm:block" />
+
+          {/* Selector de Suite Minimalista */}
+          <div className="hidden sm:block">
+            <SuiteSwitcher />
+          </div>
         </div>
 
         {/* ========================================================= */}
-        {/* CENTRO: ENLACES DE NAVEGACIÓN PRINCIPAL (DESKTOP)         */}
+        {/* ZONA CENTRAL: NAVEGACIÓN LIMPIA (DESKTOP)                 */}
         {/* ========================================================= */}
         <nav className="hidden md:flex items-center gap-6 lg:gap-8">
           <Link
@@ -118,10 +144,25 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
           </Link>
 
           <Link
-            href="/#business-suite"
-            className="text-sm font-medium transition-colors text-slate-400 hover:text-white"
+            href="/tools/generator"
+            className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
+              pathname.startsWith('/tools/generator')
+                ? 'text-emerald-400 font-semibold'
+                : 'text-slate-400 hover:text-white'
+            }`}
           >
-            MiPortal Business
+            <span>Generador DNS</span>
+          </Link>
+
+          <Link
+            href="/guide"
+            className={`transition-all text-sm font-medium ${
+              pathname.startsWith('/guide')
+                ? 'bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full font-semibold border border-emerald-500/20'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Guía RFC
           </Link>
 
           <Link
@@ -134,85 +175,103 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
           >
             <span>Bio & Sites</span>
           </Link>
-
-          <Link
-            href="/tools/generator"
-            className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
-              pathname.startsWith('/tools/generator')
-                ? 'text-emerald-400 font-semibold'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Generador DNS</span>
-          </Link>
-
-          <Link
-            href="/guide"
-            className={`text-sm font-medium transition-colors ${
-              pathname.startsWith('/guide')
-                ? 'text-emerald-400 font-semibold'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Guía & RFCs
-          </Link>
         </nav>
 
         {/* ========================================================= */}
-        {/* LADO DERECHO: ÁREA DE USUARIO Y AUTENTICACIÓN             */}
+        {/* ZONA DERECHA: ACCIONES & USUARIO                          */}
         {/* ========================================================= */}
         <div className="flex items-center gap-2 sm:gap-3">
           {user ? (
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Botón Primario: Dashboard */}
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              {/* Botón Dashboard */}
               <Link
                 href="/dashboard"
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 border shadow-sm active:scale-95 ${
                   pathname === '/dashboard'
-                    ? 'bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20'
-                    : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    ? 'bg-emerald-500 text-slate-950 font-bold border-emerald-400 shadow-emerald-500/20'
+                    : 'bg-slate-900/80 hover:bg-slate-800 text-slate-200 border-slate-700/60'
                 }`}
-                title="Centro de Monitoreo de Dominios"
+                title="Centro de Monitoreo"
               >
-                <LayoutDashboard className="w-4 h-4" />
+                <LayoutDashboard className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="hidden sm:inline">Dashboard</span>
               </Link>
 
-              {/* Acceso a Seguridad / 2FA */}
-              <Link
-                href="/settings/security"
-                className="text-slate-400 hover:text-white hover:bg-slate-800/60 p-2 rounded-lg text-sm transition-all"
-                title="Ajustes de Seguridad y 2FA"
-                aria-label="Ajustes de Seguridad y 2FA"
-              >
-                <ShieldCheck className="w-4 h-4 text-slate-400 hover:text-emerald-400 transition-colors" />
-              </Link>
+              {/* Avatar / Perfil Desplegable */}
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen((prev) => !prev)}
+                  className="w-8 h-8 rounded-full bg-slate-900 border border-slate-700/70 hover:border-emerald-500/50 flex items-center justify-center text-emerald-400 font-bold text-xs transition relative group focus:outline-none"
+                  aria-expanded={userMenuOpen}
+                  aria-haspopup="true"
+                  title={`Sesión iniciada como ${userDisplayName}`}
+                >
+                  <span>{userInitial}</span>
+                  {/* Badge de sesión activa */}
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 border-2 border-slate-950 absolute -bottom-0.5 -right-0.5" />
+                </button>
 
-              {/* Indicador de Usuario Legible */}
-              <div
-                className="hidden lg:flex items-center gap-2 bg-slate-900 border border-slate-800 text-xs px-2.5 py-1.5 rounded-lg text-slate-300 max-w-[150px] shadow-inner"
-                title={user.email ?? ''}
-              >
-                <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold flex items-center justify-center shrink-0">
-                  {userInitial}
-                </div>
-                <span className="truncate">{userDisplayName}</span>
+                {/* Dropdown de Usuario */}
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-slate-950/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-2 z-50 animate-fade-in divide-y divide-slate-800/80">
+                    {/* Header del Perfil */}
+                    <div className="px-3 py-2">
+                      <p className="text-xs font-bold text-slate-100 truncate">
+                        {userDisplayName}
+                      </p>
+                      <p className="text-[11px] text-slate-400 truncate mt-0.5 font-mono">
+                        {user.email}
+                      </p>
+                    </div>
+
+                    {/* Enlaces de Cuenta */}
+                    <div className="py-1.5 space-y-0.5">
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white hover:bg-slate-900 transition"
+                      >
+                        <LayoutDashboard className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Centro de Monitoreo</span>
+                      </Link>
+
+                      <Link
+                        href="/settings/security"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white hover:bg-slate-900 transition"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Seguridad y 2FA</span>
+                      </Link>
+
+                      <Link
+                        href="/sites/builder"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white hover:bg-slate-900 transition"
+                      >
+                        <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Mis Sitios Bio</span>
+                      </Link>
+                    </div>
+
+                    {/* Botón Cerrar Sesión en Rojo Suave */}
+                    <div className="pt-1.5">
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-rose-400 hover:bg-rose-950/30 transition text-left"
+                      >
+                        <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Cerrar sesión</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {/* Botón Cerrar Sesión (Ghost) */}
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                title="Cerrar sesión"
-              >
-                <span className="hidden sm:inline">Cerrar sesión</span>
-                <LogOut className="w-3.5 h-3.5 sm:hidden" />
-              </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-2">
               <Link
                 href="/login"
                 className="text-sm font-medium text-slate-300 hover:text-white px-3 py-1.5 transition-colors"
@@ -221,9 +280,9 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
               </Link>
               <Link
                 href="/register"
-                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-medium px-3.5 py-1.5 rounded-lg text-sm shadow-sm shadow-emerald-500/20 transition-all active:scale-[0.98]"
+                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold px-3.5 py-1.5 rounded-lg text-sm shadow-sm shadow-emerald-500/20 transition-all active:scale-[0.98]"
               >
-                Registrarse
+                Comenzar Gratis
               </Link>
             </div>
           )}
@@ -232,14 +291,10 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
           <button
             type="button"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
-            className="md:hidden text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition"
+            className="md:hidden text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-900 transition"
             aria-label="Abrir menú"
           >
-            {mobileMenuOpen ? (
-              <X className="w-5 h-5" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
@@ -248,10 +303,15 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
       {/* MENÚ MÓVIL DESPLEGABLE                                    */}
       {/* ========================================================= */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-xl px-4 py-4 flex flex-col gap-3 animate-fade-in">
+        <div className="md:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-xl px-4 py-4 flex flex-col gap-2.5 animate-fade-in shadow-2xl">
+          {/* Suite Switcher en móvil */}
+          <div className="pb-2 mb-1 border-b border-slate-800/80">
+            <SuiteSwitcher />
+          </div>
+
           <Link
             href="/"
-            className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2.5 transition ${
+            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2.5 transition ${
               pathname === '/'
                 ? 'bg-slate-900 text-white font-semibold'
                 : 'text-slate-300 hover:bg-slate-900 hover:text-white'
@@ -262,64 +322,92 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
           </Link>
 
           <Link
-            href="/#business-suite"
-            className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2.5 text-slate-300 hover:bg-slate-900 hover:text-white transition"
-          >
-            <Briefcase className="w-4 h-4 text-cyan-400" />
-            <span>MiPortal Business</span>
-          </Link>
-
-          <Link
-            href="/sites/builder"
-            className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2.5 transition ${
-              pathname.startsWith('/sites')
-                ? 'bg-cyan-500/10 text-cyan-400 font-semibold'
-                : 'text-slate-300 hover:bg-slate-900 hover:text-white'
-            }`}
-          >
-            <Globe className="w-4 h-4 text-cyan-400" />
-            <span>Creador Bio & Sites</span>
-          </Link>
-
-          <Link
             href="/tools/generator"
-            className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2.5 transition ${
+            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2.5 transition ${
               pathname.startsWith('/tools/generator')
                 ? 'bg-emerald-500/10 text-emerald-400 font-semibold'
                 : 'text-slate-300 hover:bg-slate-900 hover:text-white'
             }`}
           >
             <Sparkles className="w-4 h-4 text-emerald-400" />
-            <span>Generador SPF & DMARC</span>
+            <span>Generador DNS (SPF & DMARC)</span>
           </Link>
 
           <Link
             href="/guide"
-            className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2.5 transition ${
+            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2.5 transition ${
               pathname.startsWith('/guide')
                 ? 'bg-emerald-500/10 text-emerald-400 font-semibold'
                 : 'text-slate-300 hover:bg-slate-900 hover:text-white'
             }`}
           >
             <Shield className="w-4 h-4 text-emerald-400" />
-            <span>Guía & RFCs</span>
+            <span>Guía Técnica & Normativas RFC</span>
           </Link>
 
-          {user && (
-            <div className="pt-2 border-t border-slate-800/80 flex flex-col gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-400">
-                <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold flex items-center justify-center shrink-0">
+          <Link
+            href="/sites/builder"
+            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2.5 transition ${
+              pathname.startsWith('/sites')
+                ? 'bg-cyan-500/10 text-cyan-400 font-semibold'
+                : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+            }`}
+          >
+            <Globe className="w-4 h-4 text-cyan-400" />
+            <span>Bio & Sites</span>
+          </Link>
+
+          {/* Menú de Usuario en móvil */}
+          {user ? (
+            <div className="pt-3 border-t border-slate-800/80 flex flex-col gap-2">
+              <div className="flex items-center gap-2.5 px-3 py-1.5 text-xs text-slate-300">
+                <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold flex items-center justify-center shrink-0">
                   {userInitial}
                 </div>
-                <span className="truncate">{userDisplayName}</span>
+                <div className="flex flex-col truncate">
+                  <span className="font-semibold text-slate-100">{userDisplayName}</span>
+                  <span className="text-[10px] text-slate-500 font-mono">{user.email}</span>
+                </div>
               </div>
 
               <Link
+                href="/dashboard"
+                className="px-3 py-2 rounded-xl text-sm text-slate-300 hover:bg-slate-900 hover:text-white flex items-center gap-2.5 transition"
+              >
+                <LayoutDashboard className="w-4 h-4 text-emerald-400" />
+                <span>Ir al Dashboard</span>
+              </Link>
+
+              <Link
                 href="/settings/security"
-                className="px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-900 hover:text-white flex items-center gap-2.5 transition"
+                className="px-3 py-2 rounded-xl text-sm text-slate-300 hover:bg-slate-900 hover:text-white flex items-center gap-2.5 transition"
               >
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 <span>Seguridad y 2FA</span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="px-3 py-2 rounded-xl text-sm text-rose-400 hover:bg-rose-950/30 flex items-center gap-2.5 transition text-left"
+              >
+                <LogOut className="w-4 h-4 text-rose-400" />
+                <span>Cerrar sesión</span>
+              </button>
+            </div>
+          ) : (
+            <div className="pt-3 border-t border-slate-800/80 flex flex-col gap-2">
+              <Link
+                href="/login"
+                className="w-full text-center py-2 text-sm text-slate-300 hover:text-white"
+              >
+                Iniciar sesión
+              </Link>
+              <Link
+                href="/register"
+                className="w-full text-center py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold rounded-xl text-sm shadow-md shadow-emerald-500/20"
+              >
+                Comenzar Gratis
               </Link>
             </div>
           )}
