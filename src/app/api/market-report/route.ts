@@ -445,6 +445,110 @@ export async function POST(req: Request) {
       dictamenConsultoria: `Este informe formal combina con rigor científico las disciplinas de Escucha Social y Benchmarking Digital. Concluye que la supremacía en el mercado digital moderno no pertenece a quien más gasta en publicidad, sino a la marca que con mayor precisión escucha las preguntas de su audiencia, mapea los vacíos de sus competidores y ejecuta con excelencia técnica en cada punto de contacto.`,
     };
 
+    // =========================================================
+    // 7. ESTRUCTURA PARA LA RUEDA DE MODELO DE NEGOCIO Y ESTRATEGIA CON IA
+    // =========================================================
+    const businessModelWheel = {
+      coreEntity: brand,
+      categories: [
+        {
+          id: 'segmentos',
+          label: 'Segmentos de Mercado',
+          color: '#10b981', // Esmeralda
+          nodes: [
+            {
+              title: 'B2B Profesionales / Agencias',
+              desc: 'Equipos que necesitan automatizar auditorías sin fricción y entregar reportes con marca propia.',
+            },
+            {
+              title: 'Creadores / Solo-founders',
+              desc: 'Usuarios buscando presencia comercial rápida, económica y posicionamiento en buscadores.',
+            },
+            {
+              title: 'Comercio Local & Servicios',
+              desc: 'Negocios tradicionales digitalizando captación, citas y comunicación omnicanal con sus clientes.',
+            },
+          ],
+        },
+        {
+          id: 'monetizacion_ia',
+          label: 'Modelo de Negocio & IA',
+          color: '#06b6d4', // Cian
+          nodes: [
+            {
+              title: 'SaaS Freemium con Paywall Inteligente',
+              desc: 'Escaneos básicos gratis + Auditorías profundas y monitoreo continuo bajo suscripción recurrente.',
+            },
+            {
+              title: 'IA Copilot de Diagnóstico',
+              desc: 'Generación automática de entregables académicos, planes de acción y copys estratégicos.',
+            },
+            {
+              title: 'Cobros por Uso / API Tokens',
+              desc: 'Monetización de consultas automatizadas para integraciones en agencias y desarrolladores aliados.',
+            },
+          ],
+        },
+        {
+          id: 'comparacion_competidores',
+          label: 'Comparativa de Competidores',
+          color: '#f59e0b', // Ámbar
+          nodes: [
+            {
+              title: `Vs ${directRival1.split('/')[0].trim()} (Competidor Directo)`,
+              desc: 'Menor costo, interfaz en español y configuración en 1 clic.',
+            },
+            {
+              title: `Vs ${aspirationalLeader.split('/')[0].trim()} (Referente Aspiracional)`,
+              desc: 'Especialización vertical en entregabilidad y reputación.',
+            },
+            {
+              title: `Vs ${indirectRival.split('/')[0].trim()} (Competidor Indirecto)`,
+              desc: 'Automatización sin necesidad de conocimientos de consola ni configuraciones manuales.',
+            },
+          ],
+        },
+        {
+          id: 'valor_agregado',
+          label: 'Valor Agregado Diferencial',
+          color: '#8b5cf6', // Violeta
+          nodes: [
+            {
+              title: 'Suite Todo-en-Uno Unificada',
+              desc: 'Combina seguridad DNS, benchmarking y páginas de negocio en un solo SaaS.',
+            },
+            {
+              title: 'Reportes Académicos y Ejecutivos en 1 Clic',
+              desc: 'PDFs formales listos para presentar sin redactar manualmente.',
+            },
+            {
+              title: 'Diagnósticos Predictivos DNSBL & TLS',
+              desc: 'Prevención proactiva antes de que los correos reboten o caigan a spam.',
+            },
+          ],
+        },
+        {
+          id: 'propuesta_valor',
+          label: 'Sugerencias de Propuesta de Valor',
+          color: '#ec4899', // Rosa
+          nodes: [
+            {
+              title: 'Propuesta 1 (Enfocada en Seguridad)',
+              desc: "'Blinda la reputación de tu dominio y asegura que tus cotizaciones jamás caigan en spam'",
+            },
+            {
+              title: 'Propuesta 2 (Enfocada en Crecimiento)',
+              desc: "'Tu ecosistema comercial digital completo en minutos con inteligencia de mercado'",
+            },
+            {
+              title: 'Propuesta 3 (Enfocada en Agilidad)',
+              desc: "'De la idea al mercado: auditoría, presencia web y benchmarking sin código'",
+            },
+          ],
+        },
+      ],
+    };
+
     const report: MarketReportData = {
       projectInfo: {
         title: 'Informe Académico: Escucha Social & Benchmarking Digital',
@@ -462,6 +566,7 @@ export async function POST(req: Request) {
       tabla4_triangulo_competitivo,
       tabla5_benchmark_estrategias,
       conclusionesFinales,
+      businessModelWheel,
     };
 
     const response: MarketReportResponse = {

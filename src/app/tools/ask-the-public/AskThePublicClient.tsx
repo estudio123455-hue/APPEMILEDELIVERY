@@ -472,7 +472,12 @@ export default function AskThePublicClient() {
           {/* ========================================================= */}
           {viewMode === 'wheel' && (
             <div className="space-y-4">
-              <AnswerThePublicWheel result={result} />
+              <AnswerThePublicWheel
+                result={result}
+                businessModelWheel={reportData?.businessModelWheel}
+                onGenerateBusinessModel={handleGenerateReport}
+                isGeneratingBusinessModel={isGeneratingReport}
+              />
             </div>
           )}
 

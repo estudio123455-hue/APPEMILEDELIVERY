@@ -76,6 +76,23 @@ export interface ConclusionesFinales {
   dictamenConsultoria: string;
 }
 
+export interface BusinessModelNode {
+  title: string;
+  desc: string;
+}
+
+export interface BusinessModelCategory {
+  id: string;
+  label: string;
+  color: string;
+  nodes: BusinessModelNode[];
+}
+
+export interface BusinessModelWheelData {
+  coreEntity: string;
+  categories: BusinessModelCategory[];
+}
+
 export interface MarketReportData {
   projectInfo: ProjectInfo;
   tabla1_keywords: Tabla1Keyword[];
@@ -84,6 +101,7 @@ export interface MarketReportData {
   tabla4_triangulo_competitivo: Tabla4TrianguloCompetitivo[];
   tabla5_benchmark_estrategias: Tabla5BenchmarkEstrategia[];
   conclusionesFinales: ConclusionesFinales;
+  businessModelWheel: BusinessModelWheelData;
 }
 
 export interface MarketReportResponse {

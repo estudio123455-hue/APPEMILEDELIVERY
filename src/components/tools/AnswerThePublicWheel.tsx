@@ -17,11 +17,18 @@ import {
   X,
   Sparkles,
   Info,
+  HelpCircle,
+  Briefcase,
+  TrendingUp,
 } from 'lucide-react';
 import type { AskPublicResponse, AskPublicCategories } from '@/types/ask-public';
+import type { BusinessModelWheelData, BusinessModelCategory, BusinessModelNode } from '@/types/market-report';
 
 interface AnswerThePublicWheelProps {
   result: AskPublicResponse;
+  businessModelWheel?: BusinessModelWheelData;
+  onGenerateBusinessModel?: () => void;
+  isGeneratingBusinessModel?: boolean;
 }
 
 const CATEGORY_COLORS: Record<string, { label: string; color: string; bg: string }> = {
@@ -36,41 +43,159 @@ const CATEGORY_COLORS: Record<string, { label: string; color: string; bg: string
   son: { label: 'Son', color: '#f97316', bg: 'bg-orange-500/20 text-orange-400 border-orange-500/40' },
 };
 
+type WheelType = 'questions' | 'business_model';
 type DiagramMode = 'radial' | 'tree';
 
-interface SelectedQuestionInfo {
-  question: string;
-  categoryKey: string;
+interface SelectedNodeInfo {
+  title: string;
+  desc?: string;
   categoryLabel: string;
   color: string;
+  isQuestion?: boolean;
 }
 
-export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelProps) {
+export default function AnswerThePublicWheel({
+  result,
+  businessModelWheel,
+  onGenerateBusinessModel,
+  isGeneratingBusinessModel,
+}: AnswerThePublicWheelProps) {
+  // Selector de Rueda 1 (Preguntas) vs Rueda 2 (Modelo de Negocio con IA)
+  const [wheelType, setWheelType] = useState<WheelType>('questions');
   const [mode, setMode] = useState<DiagramMode>('radial');
+
+  // Canvas Viewport Pan & Zoom
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-  // Hover states for dynamic path illumination
+  // Hover states for vector highlighting
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
-  const [hoveredQuestion, setHoveredQuestion] = useState<string | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   // Expanded categories in horizontal tree mode
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
 
-  // Tooltip / Popover state for clicked question
-  const [selectedQuestion, setSelectedQuestion] = useState<SelectedQuestionInfo | null>(null);
-  const [copiedQuestion, setCopiedQuestion] = useState(false);
+  // Tooltip / Popover state
+  const [selectedNode, setSelectedNode] = useState<SelectedNodeInfo | null>(null);
+  const [copiedText, setCopiedText] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  // Filter categories with questions
-  const activeCategories = useMemo(() => {
+  // Active question categories
+  const activeQuestionCategories = useMemo(() => {
     const keys = Object.keys(result.categories) as Array<keyof AskPublicCategories>;
     return keys.filter((key) => result.categories[key] && result.categories[key].length > 0);
   }, [result]);
+
+  // Contextual Business Model Wheel Data (Default or AI generated)
+  const effectiveBusinessModel = useMemo<BusinessModelWheelData>(() => {
+    if (businessModelWheel) return businessModelWheel;
+
+    const brand = result.searchTerm.charAt(0).toUpperCase() + result.searchTerm.slice(1);
+    return {
+      coreEntity: brand,
+      categories: [
+        {
+          id: 'segmentos',
+          label: 'Segmentos de Mercado',
+          color: '#10b981', // Esmeralda
+          nodes: [
+            {
+              title: 'B2B Profesionales / Agencias',
+              desc: 'Equipos que necesitan automatizar auditorías sin fricción y entregar reportes con marca propia.',
+            },
+            {
+              title: 'Creadores / Solo-founders',
+              desc: 'Usuarios buscando presencia comercial rápida, económica y posicionamiento en buscadores.',
+            },
+            {
+              title: 'Comercio Local & Servicios',
+              desc: 'Negocios tradicionales digitalizando captación, citas y comunicación omnicanal con sus clientes.',
+            },
+          ],
+        },
+        {
+          id: 'monetizacion_ia',
+          label: 'Modelo de Negocio & IA',
+          color: '#06b6d4', // Cian
+          nodes: [
+            {
+              title: 'SaaS Freemium con Paywall Inteligente',
+              desc: 'Escaneos básicos gratis + Auditorías profundas y monitoreo continuo bajo suscripción recurrente.',
+            },
+            {
+              title: 'IA Copilot de Diagnóstico',
+              desc: 'Generación automática de entregables académicos, planes de acción y copys estratégicos.',
+            },
+            {
+              title: 'Cobros por Uso / API Tokens',
+              desc: 'Monetización de consultas automatizadas para integraciones en agencias y desarrolladores aliados.',
+            },
+          ],
+        },
+        {
+          id: 'comparacion_competidores',
+          label: 'Comparativa de Competidores',
+          color: '#f59e0b', // Ámbar
+          nodes: [
+            {
+              title: 'Vs Competidor Directo',
+              desc: 'Menor costo, interfaz en español y configuración en 1 clic.',
+            },
+            {
+              title: 'Vs Referente Aspiracional (Squarespace/Vercel)',
+              desc: 'Especialización vertical en entregabilidad de correo y reputación de dominio.',
+            },
+            {
+              title: 'Vs Competidor Indirecto (Herramientas manuales)',
+              desc: 'Automatización sin necesidad de conocimientos de consola ni configuraciones complejas.',
+            },
+          ],
+        },
+        {
+          id: 'valor_agregado',
+          label: 'Valor Agregado Diferencial',
+          color: '#8b5cf6', // Violeta
+          nodes: [
+            {
+              title: 'Suite Todo-en-Uno Unificada',
+              desc: 'Combina seguridad DNS, benchmarking y páginas de negocio en un solo SaaS.',
+            },
+            {
+              title: 'Reportes Académicos y Ejecutivos en 1 Clic',
+              desc: 'PDFs formales listos para presentar ante directivos o profesores sin redactar manualmente.',
+            },
+            {
+              title: 'Diagnósticos Predictivos DNSBL & TLS',
+              desc: 'Prevención proactiva antes de que los correos reboten o caigan a spam.',
+            },
+          ],
+        },
+        {
+          id: 'propuesta_valor',
+          label: 'Sugerencias de Propuesta de Valor',
+          color: '#ec4899', // Rosa
+          nodes: [
+            {
+              title: 'Propuesta 1 (Enfocada en Seguridad)',
+              desc: "'Blinda la reputación de tu dominio y asegura que tus cotizaciones jamás caigan en spam'",
+            },
+            {
+              title: 'Propuesta 2 (Enfocada en Crecimiento)',
+              desc: "'Tu ecosistema comercial digital completo en minutos con inteligencia de mercado'",
+            },
+            {
+              title: 'Propuesta 3 (Enfocada en Agilidad)',
+              desc: "'De la idea al mercado: auditoría, presencia web y benchmarking sin código'",
+            },
+          ],
+        },
+      ],
+    };
+  }, [businessModelWheel, result.searchTerm]);
 
   const toggleCategoryCollapse = (catKey: string) => {
     setCollapsedCategories((prev) => ({
@@ -116,8 +241,8 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    setCopiedQuestion(true);
-    setTimeout(() => setCopiedQuestion(false), 2000);
+    setCopiedText(true);
+    setTimeout(() => setCopiedText(false), 2000);
   };
 
   // Export SVG file
@@ -129,7 +254,8 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `diagrama-answerthepublic-${result.searchTerm.replace(/[^a-z0-9]/gi, '-')}.svg`;
+    const prefix = wheelType === 'business_model' ? 'modelo-negocio-ia' : 'preguntas-answerthepublic';
+    a.download = `diagrama-${prefix}-${result.searchTerm.replace(/[^a-z0-9]/gi, '-')}.svg`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -152,13 +278,14 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
       canvas.height = 2400;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.fillStyle = '#020617'; // slate-950 background
+        ctx.fillStyle = '#020617';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
         const pngUrl = canvas.toDataURL('image/png');
         const a = document.createElement('a');
         a.href = pngUrl;
-        a.download = `diagrama-answerthepublic-${result.searchTerm.replace(/[^a-z0-9]/gi, '-')}.png`;
+        const prefix = wheelType === 'business_model' ? 'modelo-negocio-ia' : 'preguntas-answerthepublic';
+        a.download = `diagrama-${prefix}-${result.searchTerm.replace(/[^a-z0-9]/gi, '-')}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -172,7 +299,7 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
     <div
       ref={containerRef}
       className="relative w-full rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl overflow-hidden select-none"
-      style={{ height: '740px' }}
+      style={{ height: '760px' }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -180,105 +307,149 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
       onWheel={handleWheel}
     >
       {/* ========================================================= */}
-      {/* BARRA DE CONTROLES FLOTANTE DEL LIENZO (TOP BAR)          */}
+      {/* BARRA SUPERIOR DE SELECTOR DE RUEDAS & CONTROLES          */}
       {/* ========================================================= */}
-      <div className="absolute top-4 left-4 right-4 z-20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pointer-events-none">
-        {/* Selector de Modo de Diagrama */}
-        <div className="pointer-events-auto flex items-center p-1 rounded-2xl bg-slate-900/90 border border-slate-700/80 shadow-2xl backdrop-blur-xl">
+      <div className="absolute top-4 left-4 right-4 z-20 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pointer-events-none">
+        {/* Selector de Ruedas: Rueda 1 vs Rueda 2 */}
+        <div className="pointer-events-auto flex items-center p-1 rounded-2xl bg-slate-900/95 border border-slate-700/80 shadow-2xl backdrop-blur-xl">
           <button
             type="button"
             onClick={() => {
-              setMode('radial');
+              setWheelType('questions');
               handleReset();
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-              mode === 'radial'
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+              wheelType === 'questions'
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
             <CircleDot className="w-3.5 h-3.5" />
-            <span>Rueda Radial (Sunburst)</span>
+            <span>Rueda 1: Escucha de Preguntas</span>
           </button>
 
           <button
             type="button"
             onClick={() => {
-              setMode('tree');
+              setWheelType('business_model');
               handleReset();
+              if (!businessModelWheel && onGenerateBusinessModel) {
+                onGenerateBusinessModel();
+              }
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-              mode === 'tree'
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 shadow-md'
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+              wheelType === 'business_model'
+                ? 'bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 text-slate-950 shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <GitFork className="w-3.5 h-3.5" />
-            <span>Árbol Horizontal (Mindmap)</span>
+            <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+            <span>Rueda 2: Modelo de Negocio & IA</span>
           </button>
         </div>
 
-        {/* Herramientas de Pan, Zoom y Descargas */}
-        <div className="pointer-events-auto flex items-center gap-1.5 p-1 rounded-2xl bg-slate-900/90 border border-slate-700/80 shadow-2xl backdrop-blur-xl text-xs">
-          <button
-            type="button"
-            onClick={() => handleZoom(0.15)}
-            className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-            title="Zoom In (+)"
-          >
-            <ZoomIn className="w-4 h-4" />
-          </button>
+        {/* Selector de Modo de Diagrama (Radial vs Árbol) y Zoom */}
+        <div className="pointer-events-auto flex items-center gap-2 flex-wrap">
+          <div className="flex items-center p-1 rounded-2xl bg-slate-900/95 border border-slate-700/80 shadow-2xl backdrop-blur-xl">
+            <button
+              type="button"
+              onClick={() => {
+                setMode('radial');
+                handleReset();
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
+                mode === 'radial'
+                  ? 'bg-slate-800 text-white font-bold shadow'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <CircleDot className="w-3.5 h-3.5" />
+              <span>Radial</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleZoom(-0.15)}
-            className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-            title="Zoom Out (-)"
-          >
-            <ZoomOut className="w-4 h-4" />
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('tree');
+                handleReset();
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
+                mode === 'tree'
+                  ? 'bg-slate-800 text-white font-bold shadow'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <GitFork className="w-3.5 h-3.5" />
+              <span>Árbol (Mindmap)</span>
+            </button>
+          </div>
 
-          <button
-            type="button"
-            onClick={handleReset}
-            className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-            title="Centrar Vista (Reset)"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
+          {/* Botones de Zoom, Reset y Exportar */}
+          <div className="flex items-center gap-1 p-1 rounded-2xl bg-slate-900/95 border border-slate-700/80 shadow-2xl backdrop-blur-xl text-xs">
+            <button
+              type="button"
+              onClick={() => handleZoom(0.15)}
+              className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              title="Zoom In (+)"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
 
-          <div className="h-4 w-px bg-slate-700 mx-1" />
+            <button
+              type="button"
+              onClick={() => handleZoom(-0.15)}
+              className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              title="Zoom Out (-)"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
 
-          <button
-            type="button"
-            onClick={downloadSVG}
-            className="px-2.5 py-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-1 font-medium cursor-pointer"
-            title="Descargar Vector SVG"
-          >
-            <Download className="w-3.5 h-3.5 text-emerald-400" />
-            <span>SVG</span>
-          </button>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              title="Centrar Vista"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
 
-          <button
-            type="button"
-            onClick={downloadPNG}
-            className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition flex items-center gap-1 font-bold cursor-pointer"
-            title="Descargar Imagen PNG de Alta Resolución"
-          >
-            <Download className="w-3.5 h-3.5 text-emerald-400" />
-            <span>PNG</span>
-          </button>
+            <div className="h-4 w-px bg-slate-700 mx-1" />
+
+            <button
+              type="button"
+              onClick={downloadSVG}
+              className="px-2.5 py-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-1 font-medium cursor-pointer"
+              title="Descargar SVG Vectorial"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span>SVG</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={downloadPNG}
+              className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition flex items-center gap-1 font-bold cursor-pointer"
+              title="Descargar Imagen PNG"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span>PNG</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Indicador de ayuda de interacción */}
+      {/* Indicador de ayuda */}
       <div className="absolute bottom-4 left-4 z-20 pointer-events-none hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800/80 text-[11px] text-slate-400 backdrop-blur-md">
         <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-        <span>Arrastra para desplazar • Rueda para Zoom • Clic en nodo para ver detalles</span>
+        <span>
+          {wheelType === 'business_model'
+            ? 'Rueda de Modelo de Negocio & IA activa • Clic en nodo para ver detalles estratégicos'
+            : 'Rueda de Escucha activa • Clic en nodo para ver la consulta y buscarla en Google'}
+        </span>
       </div>
 
       {/* ========================================================= */}
-      {/* LIENZO SVG INTERACTIVO CON CONECTORES VECTORIALES         */}
+      {/* LIENZO SVG INTERACTIVO                                    */}
       {/* ========================================================= */}
       <svg
         ref={svgRef}
@@ -286,7 +457,6 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          {/* Filtro de Resplandor Neón */}
           <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
             <feGaussianBlur stdDeviation="3.5" result="blur" />
             <feMerge>
@@ -294,17 +464,6 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-
-          {/* Gradiente Radial para Conectores */}
-          <linearGradient id="branch-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#10b981" />
-            <stop offset="100%" stopColor="#06b6d4" />
-          </linearGradient>
-
-          {/* Marcadores de inicio y fin */}
-          <marker id="dot-marker" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4">
-            <circle cx="5" cy="5" r="4" fill="#10b981" />
-          </marker>
         </defs>
 
         <g
@@ -312,30 +471,25 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
           style={{ transformOrigin: 'center center', transition: isDragging ? 'none' : 'transform 0.08s ease-out' }}
         >
           {/* ========================================================= */}
-          {/* MODO 1: RUEDA RADIAL CONECTADA (RADIAL SUNBURST)          */}
+          {/* RUEDA 1: ESCUCHA DE PREGUNTAS (GOOGLE SUGGEST)            */}
           {/* ========================================================= */}
-          {mode === 'radial' && (
-            <g transform="translate(600, 370)">
-              {/* Anillo de Referencia Órbita 1 */}
+          {wheelType === 'questions' && mode === 'radial' && (
+            <g transform="translate(600, 390)">
               <circle cx="0" cy="0" r="160" fill="none" stroke="#1e293b" strokeWidth="1" strokeDasharray="4 4" />
-              {/* Anillo de Referencia Órbita 2 */}
               <circle cx="0" cy="0" r="320" fill="none" stroke="#0f172a" strokeWidth="1" strokeDasharray="3 3" />
 
-              {/* Conectores y Nodos de Cada Categoría */}
-              {activeCategories.map((catKey, catIdx) => {
+              {activeQuestionCategories.map((catKey, catIdx) => {
                 const conf = CATEGORY_COLORS[catKey] || { label: catKey, color: '#10b981', bg: '' };
-                const numCats = activeCategories.length;
+                const numCats = activeQuestionCategories.length;
                 const catAngle = (2 * Math.PI * catIdx) / numCats - Math.PI / 2;
                 const catRadius = 160;
                 const catX = catRadius * Math.cos(catAngle);
                 const catY = catRadius * Math.sin(catAngle);
-
                 const questions = result.categories[catKey] || [];
                 const isCatActive = hoveredCategory === catKey || hoveredCategory === null;
 
                 return (
                   <g key={catKey}>
-                    {/* Conector Bézier desde el Centro al Nodo de Categoría */}
                     <path
                       d={`M 0 0 Q ${catX * 0.4} ${catY * 0.4} ${catX} ${catY}`}
                       fill="none"
@@ -346,7 +500,6 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
                       className="transition-all duration-300"
                     />
 
-                    {/* Nodo de Categoría Intermedio */}
                     <g
                       transform={`translate(${catX}, ${catY})`}
                       className="cursor-pointer"
@@ -372,34 +525,29 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
                       </text>
                     </g>
 
-                    {/* Conectores y Nodos de las Preguntas (Anillo Exterior) */}
                     {questions.slice(0, 6).map((qText, qIdx) => {
                       const totalQ = Math.min(questions.length, 6);
-                      // Fan out angles around the category's angle
-                      const angleSpan = 0.55; // Spread in radians
+                      const angleSpan = 0.55;
                       const step = totalQ > 1 ? angleSpan / (totalQ - 1) : 0;
                       const qAngle = catAngle - angleSpan / 2 + qIdx * step;
                       const qRadius = 320;
                       const qX = qRadius * Math.cos(qAngle);
                       const qY = qRadius * Math.sin(qAngle);
 
-                      const isQHovered = hoveredQuestion === qText;
-                      const isHighlighted = isQHovered || (hoveredCategory === catKey && hoveredQuestion === null);
-                      const pathOpacity = isHighlighted ? 1 : hoveredCategory === null && hoveredQuestion === null ? 0.45 : 0.12;
+                      const isQHovered = hoveredNode === qText;
+                      const isHighlighted = isQHovered || (hoveredCategory === catKey && hoveredNode === null);
+                      const pathOpacity = isHighlighted ? 1 : hoveredCategory === null && hoveredNode === null ? 0.45 : 0.12;
 
-                      // Cubic Bezier curve from Category Node to Question Node
                       const cpx1 = catX + Math.cos(catAngle) * 50;
                       const cpy1 = catY + Math.sin(catAngle) * 50;
                       const cpx2 = qX - Math.cos(qAngle) * 50;
                       const cpy2 = qY - Math.sin(qAngle) * 50;
 
-                      // Rotation for radial text alignment
                       const isRightSide = Math.cos(qAngle) >= 0;
                       const textRotation = (qAngle * 180) / Math.PI + (isRightSide ? 0 : 180);
 
                       return (
                         <g key={qIdx}>
-                          {/* Conector Bézier Cúbico hacia la Pregunta */}
                           <path
                             d={`M ${catX} ${catY} C ${cpx1} ${cpy1}, ${cpx2} ${cpy2}, ${qX} ${qY}`}
                             fill="none"
@@ -410,24 +558,23 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
                             className="transition-all duration-200"
                           />
 
-                          {/* Nodo Terminal de Pregunta */}
                           <g
                             transform={`translate(${qX}, ${qY})`}
                             className="cursor-pointer group"
                             onMouseEnter={() => {
-                              setHoveredQuestion(qText);
+                              setHoveredNode(qText);
                               setHoveredCategory(catKey);
                             }}
                             onMouseLeave={() => {
-                              setHoveredQuestion(null);
+                              setHoveredNode(null);
                               setHoveredCategory(null);
                             }}
                             onClick={() => {
-                              setSelectedQuestion({
-                                question: qText,
-                                categoryKey: catKey,
+                              setSelectedNode({
+                                title: qText,
                                 categoryLabel: conf.label,
                                 color: conf.color,
+                                isQuestion: true,
                               });
                             }}
                           >
@@ -438,8 +585,6 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
                               strokeWidth="2"
                               className="transition-transform group-hover:scale-125"
                             />
-
-                            {/* Etiqueta de Texto Orientada Radialmente */}
                             <g transform={`rotate(${textRotation})`}>
                               <text
                                 x={isRightSide ? 10 : -10}
@@ -461,45 +606,17 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
                 );
               })}
 
-              {/* NODO CENTRAL RAÍZ (TÉRMINO ANALIZADO) */}
+              {/* Nodo Central Raíz */}
               <g className="cursor-pointer" onClick={() => handleReset()}>
-                <circle
-                  r="56"
-                  fill="#020617"
-                  stroke="#10b981"
-                  strokeWidth="3.5"
-                  filter="url(#glow)"
-                />
+                <circle r="56" fill="#020617" stroke="#10b981" strokeWidth="3.5" filter="url(#glow)" />
                 <circle r="52" fill="none" stroke="#06b6d4" strokeWidth="1" strokeDasharray="3 3" />
-                <text
-                  textAnchor="middle"
-                  y="-12"
-                  fill="#10b981"
-                  fontSize="9"
-                  fontWeight="bold"
-                  letterSpacing="1"
-                >
+                <text textAnchor="middle" y="-12" fill="#10b981" fontSize="9" fontWeight="bold" letterSpacing="1">
                   BÚSQUEDA RAÍZ
                 </text>
-                <text
-                  textAnchor="middle"
-                  y="7"
-                  fill="#ffffff"
-                  fontSize="13"
-                  fontWeight="900"
-                  className="font-mono"
-                >
-                  {result.searchTerm.length > 18
-                    ? `${result.searchTerm.slice(0, 18)}...`
-                    : result.searchTerm}
+                <text textAnchor="middle" y="7" fill="#ffffff" fontSize="13" fontWeight="900" className="font-mono">
+                  {result.searchTerm.length > 18 ? `${result.searchTerm.slice(0, 18)}...` : result.searchTerm}
                 </text>
-                <text
-                  textAnchor="middle"
-                  y="24"
-                  fill="#64748b"
-                  fontSize="10"
-                  fontFamily="monospace"
-                >
+                <text textAnchor="middle" y="24" fill="#64748b" fontSize="10" fontFamily="monospace">
                   {result.totalQuestions} preguntas
                 </text>
               </g>
@@ -507,43 +624,27 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
           )}
 
           {/* ========================================================= */}
-          {/* MODO 2: DIAGRAMA DE ÁRBOL HORIZONTAL (MINDMAP / ALSOASKED)*/}
+          {/* RUEDA 1: MODO ÁRBOL HORIZONTAL (PREGUNTAS)                 */}
           {/* ========================================================= */}
-          {mode === 'tree' && (
+          {wheelType === 'questions' && mode === 'tree' && (
             <g transform="translate(60, 40)">
-              {/* Nodo Raíz Izquierdo */}
               <g transform="translate(80, 320)">
-                <rect
-                  x="-70"
-                  y="-28"
-                  width="140"
-                  height="56"
-                  rx="14"
-                  fill="#020617"
-                  stroke="#10b981"
-                  strokeWidth="2.5"
-                  filter="url(#glow)"
-                />
+                <rect x="-70" y="-28" width="140" height="56" rx="14" fill="#020617" stroke="#10b981" strokeWidth="2.5" filter="url(#glow)" />
                 <text textAnchor="middle" y="-6" fill="#10b981" fontSize="9" fontWeight="bold">
                   BÚSQUEDA RAÍZ
                 </text>
                 <text textAnchor="middle" y="14" fill="#ffffff" fontSize="13" fontWeight="900">
-                  {result.searchTerm.length > 14
-                    ? `${result.searchTerm.slice(0, 14)}...`
-                    : result.searchTerm}
+                  {result.searchTerm.length > 14 ? `${result.searchTerm.slice(0, 14)}...` : result.searchTerm}
                 </text>
               </g>
 
-              {/* Ramificaciones a Categorías y Preguntas */}
-              {activeCategories.map((catKey, catIdx) => {
+              {activeQuestionCategories.map((catKey, catIdx) => {
                 const conf = CATEGORY_COLORS[catKey] || { label: catKey, color: '#10b981', bg: '' };
-                const numCats = activeCategories.length;
+                const numCats = activeQuestionCategories.length;
                 const catY = 50 + catIdx * (620 / Math.max(numCats - 1, 1));
                 const catX = 360;
                 const isCollapsed = collapsedCategories[catKey];
                 const questions = isCollapsed ? [] : result.categories[catKey] || [];
-
-                // Root to Category Horizontal Bézier Curve
                 const rootX = 150;
                 const rootY = 320;
                 const isCatHovered = hoveredCategory === catKey;
@@ -557,10 +658,8 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
                       strokeWidth={isCatHovered ? 3 : 1.6}
                       opacity={hoveredCategory === null || isCatHovered ? 0.85 : 0.15}
                       filter={isCatHovered ? 'url(#glow)' : undefined}
-                      className="transition-all duration-200"
                     />
 
-                    {/* Nodo de Categoría con botón colapsable */}
                     <g
                       transform={`translate(${catX}, ${catY})`}
                       className="cursor-pointer"
@@ -568,45 +667,25 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
                       onMouseEnter={() => setHoveredCategory(catKey)}
                       onMouseLeave={() => setHoveredCategory(null)}
                     >
-                      <rect
-                        x="-30"
-                        y="-16"
-                        width="80"
-                        height="32"
-                        rx="10"
-                        fill="#020617"
-                        stroke={conf.color}
-                        strokeWidth="2"
-                        filter={isCatHovered ? 'url(#glow)' : undefined}
-                      />
-                      <text
-                        textAnchor="middle"
-                        y="4"
-                        fill="#ffffff"
-                        fontSize="11"
-                        fontWeight="bold"
-                        className="pointer-events-none"
-                      >
+                      <rect x="-30" y="-16" width="80" height="32" rx="10" fill="#020617" stroke={conf.color} strokeWidth="2" filter={isCatHovered ? 'url(#glow)' : undefined} />
+                      <text textAnchor="middle" y="4" fill="#ffffff" fontSize="11" fontWeight="bold" className="pointer-events-none">
                         {conf.label}
                       </text>
-                      {/* Badge colapsar/expandir */}
                       <circle cx="44" cy="0" r="8" fill="#1e293b" stroke={conf.color} strokeWidth="1" />
                       <text textAnchor="middle" y="3" x="44" fill={conf.color} fontSize="10" fontWeight="bold">
                         {isCollapsed ? '+' : '−'}
                       </text>
                     </g>
 
-                    {/* Ramificaciones de Preguntas */}
                     {questions.slice(0, 5).map((qText, qIdx) => {
                       const totalQ = Math.min(questions.length, 5);
                       const qY = catY - ((totalQ - 1) * 26) / 2 + qIdx * 26;
                       const qX = 520;
-                      const isQHovered = hoveredQuestion === qText;
-                      const isHighlighted = isQHovered || (hoveredCategory === catKey && hoveredQuestion === null);
+                      const isQHovered = hoveredNode === qText;
+                      const isHighlighted = isQHovered || (hoveredCategory === catKey && hoveredNode === null);
 
                       return (
                         <g key={qIdx}>
-                          {/* Conector Bézier de Categoría a Pregunta */}
                           <path
                             d={`M ${catX + 54} ${catY} C ${(catX + 54 + qX) / 2} ${catY}, ${(catX + 54 + qX) / 2} ${qY}, ${qX} ${qY}`}
                             fill="none"
@@ -616,41 +695,299 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
                             filter={isHighlighted ? 'url(#glow)' : undefined}
                           />
 
-                          {/* Nodo de Pregunta */}
                           <g
                             transform={`translate(${qX}, ${qY})`}
                             className="cursor-pointer group"
                             onMouseEnter={() => {
-                              setHoveredQuestion(qText);
+                              setHoveredNode(qText);
                               setHoveredCategory(catKey);
                             }}
                             onMouseLeave={() => {
-                              setHoveredQuestion(null);
+                              setHoveredNode(null);
                               setHoveredCategory(null);
                             }}
                             onClick={() => {
-                              setSelectedQuestion({
-                                question: qText,
-                                categoryKey: catKey,
+                              setSelectedNode({
+                                title: qText,
                                 categoryLabel: conf.label,
                                 color: conf.color,
+                                isQuestion: true,
+                              });
+                            }}
+                          >
+                            <circle r={isHighlighted ? 4.5 : 3.5} fill={isHighlighted ? '#34d399' : conf.color} stroke="#020617" strokeWidth="1.5" />
+                            <text x="10" y="3.5" fill={isHighlighted ? '#ffffff' : '#cbd5e1'} fontSize="11" fontWeight={isHighlighted ? 'bold' : 'normal'}>
+                              {qText.length > 55 ? `${qText.slice(0, 55)}...` : qText}
+                            </text>
+                          </g>
+                        </g>
+                      );
+                    })}
+                  </g>
+                );
+              })}
+            </g>
+          )}
+
+          {/* ========================================================= */}
+          {/* RUEDA 2: MODELO DE NEGOCIO & ESTRATEGIA CON IA (RADIAL)    */}
+          {/* ========================================================= */}
+          {wheelType === 'business_model' && mode === 'radial' && (
+            <g transform="translate(600, 390)">
+              <circle cx="0" cy="0" r="175" fill="none" stroke="#1e293b" strokeWidth="1" strokeDasharray="4 4" />
+              <circle cx="0" cy="0" r="330" fill="none" stroke="#0f172a" strokeWidth="1" strokeDasharray="3 3" />
+
+              {effectiveBusinessModel.categories.map((cat, catIdx) => {
+                const numCats = effectiveBusinessModel.categories.length; // 5
+                const catAngle = (2 * Math.PI * catIdx) / numCats - Math.PI / 2;
+                const catRadius = 175;
+                const catX = catRadius * Math.cos(catAngle);
+                const catY = catRadius * Math.sin(catAngle);
+                const isCatActive = hoveredCategory === cat.id || hoveredCategory === null;
+
+                return (
+                  <g key={cat.id}>
+                    {/* Conector Central hacia la Rama de Negocio */}
+                    <path
+                      d={`M 0 0 Q ${catX * 0.4} ${catY * 0.4} ${catX} ${catY}`}
+                      fill="none"
+                      stroke={cat.color}
+                      strokeWidth={hoveredCategory === cat.id ? 3.5 : 2}
+                      opacity={isCatActive ? 0.9 : 0.15}
+                      filter={hoveredCategory === cat.id ? 'url(#glow)' : undefined}
+                      className="transition-all duration-300"
+                    />
+
+                    {/* Nodo de Rama Estratégica */}
+                    <g
+                      transform={`translate(${catX}, ${catY})`}
+                      className="cursor-pointer"
+                      onMouseEnter={() => setHoveredCategory(cat.id)}
+                      onMouseLeave={() => setHoveredCategory(null)}
+                    >
+                      <rect
+                        x="-55"
+                        y="-16"
+                        width="110"
+                        height="32"
+                        rx="10"
+                        fill="#020617"
+                        stroke={cat.color}
+                        strokeWidth="2.5"
+                        filter={hoveredCategory === cat.id ? 'url(#glow)' : undefined}
+                      />
+                      <text
+                        textAnchor="middle"
+                        y="4"
+                        fill="#ffffff"
+                        fontSize="10"
+                        fontWeight="bold"
+                        className="pointer-events-none"
+                      >
+                        {cat.label}
+                      </text>
+                    </g>
+
+                    {/* Conectores y Nodos de las 3 Estrategias / Tácticas */}
+                    {cat.nodes.map((node, nodeIdx) => {
+                      const totalNodes = cat.nodes.length;
+                      const angleSpan = 0.52;
+                      const step = totalNodes > 1 ? angleSpan / (totalNodes - 1) : 0;
+                      const nodeAngle = catAngle - angleSpan / 2 + nodeIdx * step;
+                      const nodeRadius = 330;
+                      const nodeX = nodeRadius * Math.cos(nodeAngle);
+                      const nodeY = nodeRadius * Math.sin(nodeAngle);
+
+                      const isNodeHovered = hoveredNode === node.title;
+                      const isHighlighted = isNodeHovered || (hoveredCategory === cat.id && hoveredNode === null);
+                      const pathOpacity = isHighlighted ? 1 : hoveredCategory === null && hoveredNode === null ? 0.5 : 0.15;
+
+                      const cpx1 = catX + Math.cos(catAngle) * 60;
+                      const cpy1 = catY + Math.sin(catAngle) * 60;
+                      const cpx2 = nodeX - Math.cos(nodeAngle) * 60;
+                      const cpy2 = nodeY - Math.sin(nodeAngle) * 60;
+
+                      const isRightSide = Math.cos(nodeAngle) >= 0;
+                      const textRotation = (nodeAngle * 180) / Math.PI + (isRightSide ? 0 : 180);
+
+                      return (
+                        <g key={node.title}>
+                          <path
+                            d={`M ${catX} ${catY} C ${cpx1} ${cpy1}, ${cpx2} ${cpy2}, ${nodeX} ${nodeY}`}
+                            fill="none"
+                            stroke={isHighlighted ? '#ffffff' : cat.color}
+                            strokeWidth={isHighlighted ? 3 : 1.4}
+                            opacity={pathOpacity}
+                            filter={isHighlighted ? 'url(#glow)' : undefined}
+                            className="transition-all duration-200"
+                          />
+
+                          <g
+                            transform={`translate(${nodeX}, ${nodeY})`}
+                            className="cursor-pointer group"
+                            onMouseEnter={() => {
+                              setHoveredNode(node.title);
+                              setHoveredCategory(cat.id);
+                            }}
+                            onMouseLeave={() => {
+                              setHoveredNode(null);
+                              setHoveredCategory(null);
+                            }}
+                            onClick={() => {
+                              setSelectedNode({
+                                title: node.title,
+                                desc: node.desc,
+                                categoryLabel: cat.label,
+                                color: cat.color,
+                                isQuestion: false,
                               });
                             }}
                           >
                             <circle
-                              r={isHighlighted ? 4.5 : 3.5}
-                              fill={isHighlighted ? '#34d399' : conf.color}
+                              r={isHighlighted ? 6 : 4.5}
+                              fill={isHighlighted ? '#ffffff' : cat.color}
                               stroke="#020617"
-                              strokeWidth="1.5"
+                              strokeWidth="2"
+                              className="transition-transform group-hover:scale-125"
                             />
-                            <text
-                              x="10"
-                              y="3.5"
-                              fill={isHighlighted ? '#ffffff' : '#cbd5e1'}
-                              fontSize="11"
-                              fontWeight={isHighlighted ? 'bold' : 'normal'}
-                            >
-                              {qText.length > 55 ? `${qText.slice(0, 55)}...` : qText}
+                            <g transform={`rotate(${textRotation})`}>
+                              <text
+                                x={isRightSide ? 12 : -12}
+                                y="3"
+                                textAnchor={isRightSide ? 'start' : 'end'}
+                                fill={isHighlighted ? '#ffffff' : '#cbd5e1'}
+                                fontSize="10.5"
+                                fontWeight={isHighlighted ? 'bold' : '500'}
+                                className="transition-colors select-none font-medium"
+                              >
+                                {node.title.length > 32 ? `${node.title.slice(0, 32)}...` : node.title}
+                              </text>
+                            </g>
+                          </g>
+                        </g>
+                      );
+                    })}
+                  </g>
+                );
+              })}
+
+              {/* NÚCLEO ESTRATÉGICO CENTRAL */}
+              <g className="cursor-pointer" onClick={() => handleReset()}>
+                <circle r="60" fill="#020617" stroke="#06b6d4" strokeWidth="3.5" filter="url(#glow)" />
+                <circle r="56" fill="none" stroke="#10b981" strokeWidth="1" strokeDasharray="3 3" />
+                <text textAnchor="middle" y="-14" fill="#06b6d4" fontSize="8.5" fontWeight="bold" letterSpacing="1">
+                  NÚCLEO ESTRATÉGICO
+                </text>
+                <text textAnchor="middle" y="6" fill="#ffffff" fontSize="13" fontWeight="900" className="font-mono">
+                  {effectiveBusinessModel.coreEntity.length > 16
+                    ? `${effectiveBusinessModel.coreEntity.slice(0, 16)}...`
+                    : effectiveBusinessModel.coreEntity}
+                </text>
+                <text textAnchor="middle" y="24" fill="#10b981" fontSize="9.5" fontWeight="bold">
+                  Modelo de Negocio & IA
+                </text>
+              </g>
+            </g>
+          )}
+
+          {/* ========================================================= */}
+          {/* RUEDA 2: MODO ÁRBOL HORIZONTAL (MODELO DE NEGOCIO)        */}
+          {/* ========================================================= */}
+          {wheelType === 'business_model' && mode === 'tree' && (
+            <g transform="translate(60, 40)">
+              {/* Raíz Izquierda */}
+              <g transform="translate(90, 320)">
+                <rect x="-80" y="-30" width="160" height="60" rx="14" fill="#020617" stroke="#06b6d4" strokeWidth="2.5" filter="url(#glow)" />
+                <text textAnchor="middle" y="-8" fill="#06b6d4" fontSize="9" fontWeight="bold">
+                  NÚCLEO ESTRATÉGICO
+                </text>
+                <text textAnchor="middle" y="12" fill="#ffffff" fontSize="13" fontWeight="900">
+                  {effectiveBusinessModel.coreEntity.length > 14
+                    ? `${effectiveBusinessModel.coreEntity.slice(0, 14)}...`
+                    : effectiveBusinessModel.coreEntity}
+                </text>
+              </g>
+
+              {effectiveBusinessModel.categories.map((cat, catIdx) => {
+                const numCats = effectiveBusinessModel.categories.length; // 5
+                const catY = 80 + catIdx * (520 / Math.max(numCats - 1, 1));
+                const catX = 390;
+                const isCollapsed = collapsedCategories[cat.id];
+                const nodes = isCollapsed ? [] : cat.nodes;
+                const rootX = 170;
+                const rootY = 320;
+                const isCatHovered = hoveredCategory === cat.id;
+
+                return (
+                  <g key={cat.id}>
+                    <path
+                      d={`M ${rootX} ${rootY} C ${(rootX + catX) / 2} ${rootY}, ${(rootX + catX) / 2} ${catY}, ${catX - 50} ${catY}`}
+                      fill="none"
+                      stroke={cat.color}
+                      strokeWidth={isCatHovered ? 3 : 1.6}
+                      opacity={hoveredCategory === null || isCatHovered ? 0.9 : 0.15}
+                      filter={isCatHovered ? 'url(#glow)' : undefined}
+                    />
+
+                    <g
+                      transform={`translate(${catX}, ${catY})`}
+                      className="cursor-pointer"
+                      onClick={() => toggleCategoryCollapse(cat.id)}
+                      onMouseEnter={() => setHoveredCategory(cat.id)}
+                      onMouseLeave={() => setHoveredCategory(null)}
+                    >
+                      <rect x="-50" y="-18" width="125" height="36" rx="10" fill="#020617" stroke={cat.color} strokeWidth="2" filter={isCatHovered ? 'url(#glow)' : undefined} />
+                      <text textAnchor="middle" y="4" fill="#ffffff" fontSize="10.5" fontWeight="bold" className="pointer-events-none">
+                        {cat.label}
+                      </text>
+                      <circle cx="70" cy="0" r="8" fill="#1e293b" stroke={cat.color} strokeWidth="1" />
+                      <text textAnchor="middle" y="3" x="70" fill={cat.color} fontSize="10" fontWeight="bold">
+                        {isCollapsed ? '+' : '−'}
+                      </text>
+                    </g>
+
+                    {nodes.map((node, nodeIdx) => {
+                      const totalNodes = nodes.length;
+                      const nodeY = catY - ((totalNodes - 1) * 32) / 2 + nodeIdx * 32;
+                      const nodeX = 570;
+                      const isNodeHovered = hoveredNode === node.title;
+                      const isHighlighted = isNodeHovered || (hoveredCategory === cat.id && hoveredNode === null);
+
+                      return (
+                        <g key={node.title}>
+                          <path
+                            d={`M ${catX + 78} ${catY} C ${(catX + 78 + nodeX) / 2} ${catY}, ${(catX + 78 + nodeX) / 2} ${nodeY}, ${nodeX} ${nodeY}`}
+                            fill="none"
+                            stroke={isHighlighted ? '#ffffff' : cat.color}
+                            strokeWidth={isHighlighted ? 2.5 : 1.2}
+                            opacity={isHighlighted ? 1 : hoveredCategory === null ? 0.6 : 0.15}
+                            filter={isHighlighted ? 'url(#glow)' : undefined}
+                          />
+
+                          <g
+                            transform={`translate(${nodeX}, ${nodeY})`}
+                            className="cursor-pointer group"
+                            onMouseEnter={() => {
+                              setHoveredNode(node.title);
+                              setHoveredCategory(cat.id);
+                            }}
+                            onMouseLeave={() => {
+                              setHoveredNode(null);
+                              setHoveredCategory(null);
+                            }}
+                            onClick={() => {
+                              setSelectedNode({
+                                title: node.title,
+                                desc: node.desc,
+                                categoryLabel: cat.label,
+                                color: cat.color,
+                                isQuestion: false,
+                              });
+                            }}
+                          >
+                            <circle r={isHighlighted ? 5 : 3.5} fill={isHighlighted ? '#ffffff' : cat.color} stroke="#020617" strokeWidth="1.5" />
+                            <text x="12" y="4" fill={isHighlighted ? '#ffffff' : '#e2e8f0'} fontSize="11" fontWeight={isHighlighted ? 'bold' : 'normal'}>
+                              {node.title}
                             </text>
                           </g>
                         </g>
@@ -665,42 +1002,49 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
       </svg>
 
       {/* ========================================================= */}
-      {/* TOOLTIP / POPOVER FLOTANTE AL HACER CLIC EN PREGUNTA      */}
+      {/* TOOLTIP / POPOVER FLOTANTE                                */}
       {/* ========================================================= */}
-      {selectedQuestion && (
-        <div className="absolute bottom-6 right-6 z-30 w-80 sm:w-96 p-4 rounded-2xl bg-slate-900/95 border border-slate-700 shadow-2xl backdrop-blur-xl animate-fade-in text-xs space-y-3">
+      {selectedNode && (
+        <div className="absolute bottom-6 right-6 z-30 w-80 sm:w-[420px] p-4 rounded-2xl bg-slate-900/95 border border-slate-700 shadow-2xl backdrop-blur-xl animate-fade-in text-xs space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
             <span
               className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
               style={{
-                color: selectedQuestion.color,
-                backgroundColor: `${selectedQuestion.color}20`,
-                borderColor: `${selectedQuestion.color}40`,
+                color: selectedNode.color,
+                backgroundColor: `${selectedNode.color}20`,
+                borderColor: `${selectedNode.color}40`,
                 borderWidth: 1,
               }}
             >
-              Consulta: {selectedQuestion.categoryLabel}
+              {selectedNode.categoryLabel}
             </span>
             <button
               type="button"
-              onClick={() => setSelectedQuestion(null)}
+              onClick={() => setSelectedNode(null)}
               className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <p className="text-sm font-semibold text-white leading-snug">
-            "{selectedQuestion.question}"
-          </p>
+          <div>
+            <h4 className="text-sm font-bold text-white leading-snug">
+              {selectedNode.title}
+            </h4>
+            {selectedNode.desc && (
+              <p className="text-xs text-slate-300 mt-1.5 leading-relaxed bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                {selectedNode.desc}
+              </p>
+            )}
+          </div>
 
           <div className="flex items-center gap-2 pt-1">
             <button
               type="button"
-              onClick={() => copyToClipboard(selectedQuestion.question)}
+              onClick={() => copyToClipboard(selectedNode.desc ? `${selectedNode.title}: ${selectedNode.desc}` : selectedNode.title)}
               className="flex-1 py-1.5 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              {copiedQuestion ? (
+              {copiedText ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-emerald-400" />
                   <span className="text-emerald-400 font-bold">¡Copiado!</span>
@@ -708,20 +1052,22 @@ export default function AnswerThePublicWheel({ result }: AnswerThePublicWheelPro
               ) : (
                 <>
                   <Copy className="w-3.5 h-3.5" />
-                  <span>Copiar Pregunta</span>
+                  <span>Copiar Información</span>
                 </>
               )}
             </button>
 
-            <a
-              href={`https://www.google.com/search?q=${encodeURIComponent(selectedQuestion.question)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 py-1.5 px-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <span>Buscar en Google</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+            {selectedNode.isQuestion && (
+              <a
+                href={`https://www.google.com/search?q=${encodeURIComponent(selectedNode.title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-1.5 px-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>Buscar en Google</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
           </div>
         </div>
       )}

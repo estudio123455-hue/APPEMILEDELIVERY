@@ -432,6 +432,51 @@ export default function PrintableMarketReport({ report, onClose }: PrintableMark
         </section>
 
         {/* ========================================================= */}
+        {/* SECCIÓN: MODELO DE NEGOCIO, MONETIZACIÓN & IA             */}
+        {/* ========================================================= */}
+        {report.businessModelWheel && (
+          <section className="space-y-3 break-inside-avoid">
+            <div className="flex items-center justify-between border-b border-slate-300 pb-1.5">
+              <h2 className="text-base font-bold text-slate-950 uppercase tracking-wider flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-slate-900" />
+                <span>Rueda Estratégica: Modelo de Negocio, IA y Propuesta de Valor</span>
+              </h2>
+              <span className="text-xs font-mono text-slate-500">
+                5 Ramas de Monetización y Diferenciación
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-2.5">
+              {report.businessModelWheel.categories.map((cat) => (
+                <div
+                  key={cat.id}
+                  className="border border-slate-300 rounded-xl p-3 bg-slate-50/70 space-y-2 text-xs"
+                >
+                  <h3
+                    className="font-bold text-[11px] uppercase tracking-wider pb-1 border-b border-slate-200 truncate"
+                    style={{ color: cat.color }}
+                  >
+                    {cat.label}
+                  </h3>
+                  <div className="space-y-2">
+                    {cat.nodes.map((n, i) => (
+                      <div key={i} className="space-y-0.5">
+                        <strong className="text-[10.5px] font-bold text-slate-900 block leading-tight">
+                          • {n.title}
+                        </strong>
+                        <p className="text-[10px] text-slate-600 leading-snug">
+                          {n.desc}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ========================================================= */}
         {/* BLOQUE FINAL DE CONCLUSIONES Y RECOMENDACIONES            */}
         {/* ========================================================= */}
         <section className="space-y-4 break-inside-avoid">
