@@ -13,9 +13,7 @@ import {
   X,
   Search,
   Globe,
-  User as UserIcon,
-  ChevronDown,
-  ExternalLink,
+  TrendingUp,
 } from 'lucide-react';
 import SuiteSwitcher from './SuiteSwitcher';
 import { createClient } from '@/utils/supabase/client';
@@ -131,7 +129,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
         {/* ========================================================= */}
         {/* ZONA CENTRAL: NAVEGACIÓN LIMPIA (DESKTOP)                 */}
         {/* ========================================================= */}
-        <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+        <nav className="hidden md:flex items-center gap-5 lg:gap-7">
           <Link
             href="/"
             className={`text-sm font-medium transition-colors ${
@@ -140,7 +138,21 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Auditoría
+            Auditoría DNS
+          </Link>
+
+          <Link
+            href="/market-analysis"
+            className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
+              pathname.startsWith('/market-analysis')
+                ? 'text-emerald-400 font-semibold'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <span>Análisis de Mercado</span>
+            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded-full border border-emerald-500/25 font-bold">
+              Nuevo
+            </span>
           </Link>
 
           <Link
@@ -151,7 +163,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <span>Generador DNS</span>
+            <span>Generador RFC</span>
           </Link>
 
           <Link
@@ -162,7 +174,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Guía RFC
+            Guía Técnica
           </Link>
 
           <Link
@@ -318,7 +330,24 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             }`}
           >
             <Search className="w-4 h-4 text-emerald-400" />
-            <span>Auditoría de Entregabilidad</span>
+            <span>Auditoría DNS</span>
+          </Link>
+
+          <Link
+            href="/market-analysis"
+            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center justify-between transition ${
+              pathname.startsWith('/market-analysis')
+                ? 'bg-emerald-500/10 text-emerald-400 font-semibold'
+                : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              <span>Análisis de Mercado</span>
+            </div>
+            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20 font-bold">
+              Nuevo
+            </span>
           </Link>
 
           <Link
@@ -330,7 +359,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             }`}
           >
             <Sparkles className="w-4 h-4 text-emerald-400" />
-            <span>Generador DNS (SPF & DMARC)</span>
+            <span>Generador RFC (SPF & DMARC)</span>
           </Link>
 
           <Link
@@ -342,7 +371,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             }`}
           >
             <Shield className="w-4 h-4 text-emerald-400" />
-            <span>Guía Técnica & Normativas RFC</span>
+            <span>Guía Técnica & Normativas</span>
           </Link>
 
           <Link
