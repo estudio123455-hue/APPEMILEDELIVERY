@@ -16,6 +16,10 @@ import {
   Globe,
   Radio,
   Users,
+  ChevronDown,
+  MailCheck,
+  PenTool,
+  Mail,
 } from 'lucide-react';
 import SuiteSwitcher from './SuiteSwitcher';
 import { isUserSuperAdmin } from '@/config/admin';
@@ -34,6 +38,8 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
+  const toolsMenuRef = useRef<HTMLDivElement>(null);
 
   // Sync auth state con validación estricta de AAL2 (MFA Bypass Prevention)
   useEffect(() => {
@@ -88,6 +94,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
   useEffect(() => {
     setMobileMenuOpen(false);
     setUserMenuOpen(false);
+    setToolsMenuOpen(false);
   }, [pathname]);
 
   // Close user dropdown on outside click
@@ -95,6 +102,9 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
     function handleClickOutside(event: MouseEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
+      }
+      if (toolsMenuRef.current && !toolsMenuRef.current.contains(event.target as Node)) {
+        setToolsMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -160,7 +170,7 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
         {/* ========================================================= */}
         {/* ZONA CENTRAL: NAVEGACIÓN LIMPIA (DESKTOP)                 */}
         {/* ========================================================= */}
-        <nav className="hidden lg:flex items-center gap-8">
+        <nav className="hidden lg:flex items-center gap-7">
           <Link
             href="/"
             className={`text-sm font-medium transition-colors ${
@@ -172,30 +182,125 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             Auditoría DNS
           </Link>
 
-          <Link
-            href="/tools/ask-the-public"
-            className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
-              pathname.startsWith('/tools/ask-the-public')
-                ? 'text-emerald-400 font-semibold'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <span>Escucha de Mercado</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              En Vivo
-            </span>
-          </Link>
+          {/* Menú Desplegable de Herramientas */}
+          <div className="relative" ref={toolsMenuRef}>
+            <button
+              type="button"
+              onClick={() => setToolsMenuOpen((prev) => !prev)}
+              className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                pathname.startsWith('/tools')
+                  ? 'text-emerald-400 font-semibold'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              aria-expanded={toolsMenuOpen}
+            >
+              <span>Herramientas</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                  toolsMenuOpen ? 'rotate-180 text-emerald-400' : 'text-slate-500'
+                }`}
+              />
+            </button>
 
-          <Link
-            href="/tools/generator"
-            className={`text-sm font-medium transition-colors ${
-              pathname.startsWith('/tools/generator')
-                ? 'text-emerald-400 font-semibold'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Generador DNS
-          </Link>
+            {toolsMenuOpen && (
+              <div className="absolute left-0 mt-3 w-72 rounded-2xl bg-slate-950/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-2 z-50 animate-fade-in space-y-1">
+                <Link
+                  href="/tools/spam-tester"
+                  onClick={() => setToolsMenuOpen(false)}
+                  className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-900 transition group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 group-hover:bg-emerald-500/20">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white group-hover:text-emerald-400 transition">
+                      Probador de Asuntos & Spam
+                    </p>
+                    <p className="text-[11px] text-slate-400 leading-tight">
+                      Palabras gatillo y vista previa en Gmail / Outlook.
+                    </p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/tools/signature-studio"
+                  onClick={() => setToolsMenuOpen(false)}
+                  className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-900 transition group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-500/20 group-hover:bg-cyan-500/20">
+                    <PenTool className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white group-hover:text-cyan-400 transition">
+                      Estudio de Firmas Corporativas
+                    </p>
+                    <p className="text-[11px] text-slate-400 leading-tight">
+                      Diseña firmas HTML ejecutivas con sello RFC.
+                    </p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/tools/email-validator"
+                  onClick={() => setToolsMenuOpen(false)}
+                  className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-900 transition group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-400 flex items-center justify-center shrink-0 border border-teal-500/20 group-hover:bg-teal-500/20">
+                    <MailCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white group-hover:text-teal-400 transition">
+                      Validador y Limpiador de Listas
+                    </p>
+                    <p className="text-[11px] text-slate-400 leading-tight">
+                      Higiene de correos y prevención de rebotes MX.
+                    </p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/tools/generator"
+                  onClick={() => setToolsMenuOpen(false)}
+                  className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-900 transition group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20 group-hover:bg-amber-500/20">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white group-hover:text-amber-400 transition">
+                      Generador SPF & DMARC
+                    </p>
+                    <p className="text-[11px] text-slate-400 leading-tight">
+                      Asistente para registros TXT de autenticación.
+                    </p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/tools/ask-the-public"
+                  onClick={() => setToolsMenuOpen(false)}
+                  className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-900 transition group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 group-hover:bg-emerald-500/20">
+                    <Radio className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-white group-hover:text-emerald-400 transition">
+                        Escucha de Mercado
+                      </p>
+                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400">
+                        Live
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-tight">
+                      Análisis de búsquedas y preguntas frecuentes.
+                    </p>
+                  </div>
+                </Link>
+              </div>
+            )}
+          </div>
 
           <Link
             href="/guide"
@@ -363,6 +468,61 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             <span>Auditoría DNS</span>
           </Link>
 
+          {/* Suite de Herramientas Mobile */}
+          <div className="pt-2 pb-1">
+            <p className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              Herramientas de Entregabilidad
+            </p>
+          </div>
+
+          <Link
+            href="/tools/spam-tester"
+            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2.5 transition ${
+              pathname.startsWith('/tools/spam-tester')
+                ? 'bg-emerald-500/10 text-emerald-400 font-semibold'
+                : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+            }`}
+          >
+            <Mail className="w-4 h-4 text-emerald-400" />
+            <span>Probador de Asuntos & Spam</span>
+          </Link>
+
+          <Link
+            href="/tools/signature-studio"
+            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2.5 transition ${
+              pathname.startsWith('/tools/signature-studio')
+                ? 'bg-emerald-500/10 text-emerald-400 font-semibold'
+                : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+            }`}
+          >
+            <PenTool className="w-4 h-4 text-cyan-400" />
+            <span>Estudio de Firmas HTML</span>
+          </Link>
+
+          <Link
+            href="/tools/email-validator"
+            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2.5 transition ${
+              pathname.startsWith('/tools/email-validator')
+                ? 'bg-emerald-500/10 text-emerald-400 font-semibold'
+                : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+            }`}
+          >
+            <MailCheck className="w-4 h-4 text-teal-400" />
+            <span>Validador de Correos</span>
+          </Link>
+
+          <Link
+            href="/tools/generator"
+            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2.5 transition ${
+              pathname.startsWith('/tools/generator')
+                ? 'bg-emerald-500/10 text-emerald-400 font-semibold'
+                : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>Generador SPF & DMARC</span>
+          </Link>
+
           <Link
             href="/tools/ask-the-public"
             className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center justify-between transition ${
@@ -381,18 +541,6 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
           </Link>
 
           <Link
-            href="/tools/generator"
-            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2.5 transition ${
-              pathname.startsWith('/tools/generator')
-                ? 'bg-emerald-500/10 text-emerald-400 font-semibold'
-                : 'text-slate-300 hover:bg-slate-900 hover:text-white'
-            }`}
-          >
-            <Sparkles className="w-4 h-4 text-emerald-400" />
-            <span>Generador DNS</span>
-          </Link>
-
-          <Link
             href="/guide"
             className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2.5 transition ${
               pathname.startsWith('/guide')
@@ -403,6 +551,16 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
             <BookOpen className="w-4 h-4 text-emerald-400" />
             <span>Guía RFC</span>
           </Link>
+
+          {user && isUserSuperAdmin(user) && (
+            <Link
+              href="/admin/leads"
+              className="px-3 py-2 rounded-xl text-sm font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 flex items-center gap-2.5 transition"
+            >
+              <Users className="w-4 h-4 text-amber-400" />
+              <span>Prospección Masiva de Leads (Admin)</span>
+            </Link>
+          )}
 
           {user ? (
             <div className="pt-3 border-t border-slate-800/80 flex flex-col gap-2">

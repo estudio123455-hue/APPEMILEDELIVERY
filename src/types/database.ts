@@ -50,6 +50,47 @@ export interface Database {
           }
         ];
       };
+      user_usage: {
+        Row: {
+          id: string;
+          user_id: string;
+          is_pro: boolean;
+          dns_shield_active: boolean;
+          market_searches_today: number;
+          last_search_date: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          is_pro?: boolean;
+          dns_shield_active?: boolean;
+          market_searches_today?: number;
+          last_search_date?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          is_pro?: boolean;
+          dns_shield_active?: boolean;
+          market_searches_today?: number;
+          last_search_date?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_usage_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: true;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       monitored_domains: {
         Row: {
           id: string;
