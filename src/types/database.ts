@@ -50,6 +50,47 @@ export interface Database {
           }
         ];
       };
+      monitored_domains: {
+        Row: {
+          id: string;
+          user_id: string;
+          domain: string;
+          last_score: number;
+          last_dmarc_policy: string;
+          is_blacklisted: boolean;
+          last_checked_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          domain: string;
+          last_score?: number;
+          last_dmarc_policy?: string;
+          is_blacklisted?: boolean;
+          last_checked_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          domain?: string;
+          last_score?: number;
+          last_dmarc_policy?: string;
+          is_blacklisted?: boolean;
+          last_checked_at?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'monitored_domains_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       domain_audits: {
         Row: {
           id: string;

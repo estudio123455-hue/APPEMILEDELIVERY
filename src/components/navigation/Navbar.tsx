@@ -15,6 +15,7 @@ import {
   BookOpen,
   Globe,
   Radio,
+  Users,
 } from 'lucide-react';
 import SuiteSwitcher from './SuiteSwitcher';
 import { isUserSuperAdmin } from '@/config/admin';
@@ -253,8 +254,18 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                         {user.email}
                       </p>
                       {isUserSuperAdmin(user) && (
-                        <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                          <span>⚡ Super Admin Pro</span>
+                        <div className="mt-1.5 flex flex-col gap-1.5">
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 w-fit">
+                            <span>⚡ Super Admin Pro</span>
+                          </div>
+                          <Link
+                            href="/admin/leads"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2 px-2.5 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-[11px] font-semibold border border-amber-500/30 transition"
+                          >
+                            <Users className="w-3 h-3 text-amber-400" />
+                            <span>Prospección de Leads B2B</span>
+                          </Link>
                         </div>
                       )}
                     </div>

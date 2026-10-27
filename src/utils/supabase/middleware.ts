@@ -37,7 +37,8 @@ export async function updateSession(request: NextRequest) {
   const isStrictlyPrivateRoute =
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/settings') ||
-    pathname.startsWith('/account');
+    pathname.startsWith('/account') ||
+    pathname.startsWith('/admin');
 
   // Ruta de configuración de segundo factor
   const isSetup2faRoute = pathname.startsWith('/setup-2fa');
