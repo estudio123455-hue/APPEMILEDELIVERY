@@ -602,14 +602,14 @@ export default function Home() {
               </div>
 
               <div className="pt-6 mt-6 border-t border-slate-800/60">
-                <button
-                  type="button"
+                <a
+                  href="#quick-audit"
                   onClick={focusAuditInput}
                   className="inline-flex items-center gap-2 text-xs font-bold text-indigo-400 group-hover:text-indigo-300 transition"
                 >
                   <span>Probar Auditor DNS</span>
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                </button>
+                </a>
               </div>
             </div>
           </div>
@@ -1378,7 +1378,10 @@ export default function Home() {
                 </li>
                 <li>
                   <Link href="/business" className="hover:text-amber-400 transition flex items-center gap-1.5">
-                    <span>MiPortal Business (Facturación & Cobros)</span>
+                    <span>Presupuestos y Facturación</span>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      Nuevo
+                    </span>
                   </Link>
                 </li>
                 <li>
@@ -1387,9 +1390,9 @@ export default function Home() {
                   </Link>
                 </li>
                 <li>
-                  <button type="button" onClick={focusAuditInput} className="hover:text-emerald-400 transition text-left">
+                  <a href="#quick-audit" onClick={focusAuditInput} className="hover:text-emerald-400 transition text-left">
                     Auditor DNS de Dominio en Vivo
-                  </button>
+                  </a>
                 </li>
               </ul>
             </div>
