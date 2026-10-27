@@ -17,688 +17,814 @@ import {
   Calendar,
   Globe,
   Palette,
-  Briefcase,
+  ArrowUp,
+  ArrowDown,
   Layers,
   ArrowLeft,
   Copy,
+  ShieldCheck,
+  Flame,
+  CheckCircle2,
+  Cloud,
+  CloudCheck,
+  User,
+  Link as LinkIcon,
 } from 'lucide-react';
-import { BioSiteData, DEFAULT_DEMO_SITE, SiteService, SiteTheme } from '@/lib/sites/types';
-import { getBioSite, saveBioSite } from '@/lib/sites/storage';
-import PublicProfileView from '@/components/sites/PublicProfileView';
+import { BioLink, BioProfile, BioTheme, DEFAULT_BIO_PROFILE } from '@/types/bio-sites';
+import { saveBioProfile, getBioProfileSync, normalizeSlug } from '@/lib/sites/bio-storage';
+import BioProfileCard, { renderBioIcon, THEME_CONFIGS } from '@/components/sites/BioProfileCard';
 import Navbar from '@/components/navigation/Navbar';
 
+const AVATAR_PRESETS = [
+  {
+    name: 'Consultor',
+    url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+  },
+  {
+    name: 'Ejecutivo',
+    url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+  },
+  {
+    name: 'Arquitecta',
+    url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80',
+  },
+  {
+    name: 'Tech Lead',
+    url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80',
+  },
+];
+
+const THEME_OPTIONS: { id: BioTheme; name: string; desc: string; colors: string[] }[] = [
+  {
+    id: 'emerald',
+    name: 'Emerald Shield',
+    desc: 'Verde esmeralda y obsidiana con alta confianza corporativa y seguridad.',
+    colors: ['#031510', '#07241B', '#10B981'],
+  },
+  {
+    id: 'slate',
+    name: 'Slate Luxury',
+    desc: 'Lujo oscuro sobrio, grafito pulido y acentos sutiles en índigo platino.',
+    colors: ['#0B0F17', '#1E293B', '#818CF8'],
+  },
+  {
+    id: 'cyber',
+    name: 'Cyberpunk Neon',
+    desc: 'Gradientes violeta, resplandor cian eléctrico y estética synthwave.',
+    colors: ['#090616', '#1E1038', '#06B6D4'],
+  },
+  {
+    id: 'minimal-light',
+    name: 'Minimal Light',
+    desc: 'Blanco puro editorial suizo con tipografía nítida en carbón mate.',
+    colors: ['#F9FAFB', '#FFFFFF', '#18181B'],
+  },
+  {
+    id: 'sunset',
+    name: 'Sunset Velvet',
+    desc: 'Atardecer cálido en tonos vino tinto, ámbar dorado y rosa crepuscular.',
+    colors: ['#1C0E1B', '#2E142B', '#F59E0B'],
+  },
+];
+
+const ICON_OPTIONS = [
+  { id: 'globe', label: 'Web / General' },
+  { id: 'whatsapp', label: 'WhatsApp' },
+  { id: 'calendar', label: 'Calendario / Cita' },
+  { id: 'linkedin', label: 'LinkedIn' },
+  { id: 'instagram', label: 'Instagram' },
+  { id: 'x', label: 'X (Twitter)' },
+  { id: 'youtube', label: 'YouTube' },
+  { id: 'mail', label: 'Correo' },
+];
+
 export default function SiteBuilderPage() {
-  const [site, setSite] = useState<BioSiteData>(DEFAULT_DEMO_SITE);
-  const [activeTab, setActiveTab] = useState<'profile' | 'contact' | 'services' | 'theme'>('profile');
-  const [badgesInput, setBadgesInput] = useState<string>(DEFAULT_DEMO_SITE.badges.join(', '));
+  const [profile, setProfile] = useState<BioProfile>(DEFAULT_BIO_PROFILE);
+  const [activeTab, setActiveTab] = useState<'profile' | 'links' | 'theme'>('profile');
+  const [mobileView, setMobileView] = useState<'editor' | 'preview'>('editor');
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [publishFeedback, setPublishFeedback] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState<boolean>(false);
+  const [hasUnsavedLocalChanges, setHasUnsavedLocalChanges] = useState<boolean>(false);
 
-  // Load initial site from localStorage if exists
+  // Cargar estado inicial desde localStorage si existe
   useEffect(() => {
-    const existing = getBioSite('demo');
-    if (existing) {
-      setSite(existing);
-      setBadgesInput(existing.badges.join(', '));
+    const loaded = getBioProfileSync('demo');
+    if (loaded) {
+      setProfile(loaded);
     }
   }, []);
 
-  // Update site field helper
-  const updateField = <K extends keyof BioSiteData>(key: K, value: BioSiteData[K]) => {
-    setSite((prev) => ({
+  // Guardado reactivo inmediato local (auto-sync en localStorage)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(`miportal_bio_profile_${profile.slug}`, JSON.stringify(profile));
+      } catch {
+        // ignorar
+      }
+    }
+  }, [profile]);
+
+  // Modificar campo de perfil
+  const updateProfileField = <K extends keyof BioProfile>(key: K, value: BioProfile[K]) => {
+    setProfile((prev) => ({
       ...prev,
       [key]: value,
     }));
+    setHasUnsavedLocalChanges(true);
   };
 
-  // Handle Slug change with strict URL sanitation
-  const handleSlugChange = (rawSlug: string) => {
-    const cleaned = rawSlug
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '-')
-      .replace(/-+/g, '-');
-    updateField('slug', cleaned);
+  // Manejo de slug limpio
+  const handleSlugChange = (raw: string) => {
+    const clean = normalizeSlug(raw);
+    updateProfileField('slug', clean);
   };
 
-  // Handle Badges comma separated
-  const handleBadgesChange = (input: string) => {
-    setBadgesInput(input);
-    const parsed = input
-      .split(',')
-      .map((b) => b.trim())
-      .filter(Boolean);
-    updateField('badges', parsed);
+  // Agregar nuevo enlace
+  const handleAddLink = (presetType?: string) => {
+    let newLink: BioLink;
+    const newId = `link-${Date.now()}`;
+
+    if (presetType === 'whatsapp') {
+      newLink = {
+        id: newId,
+        title: 'Escríbeme por WhatsApp Directo',
+        url: 'https://wa.me/573000000000?text=Hola,%20me%20gustaría%20más%20información',
+        icon: 'whatsapp',
+        highlight: false,
+      };
+    } else if (presetType === 'calendar') {
+      newLink = {
+        id: newId,
+        title: 'Agendar Sesión de Asesoría 1-a-1',
+        url: 'https://cal.com/mi-perfil',
+        icon: 'calendar',
+        highlight: true,
+        price: '$90 USD',
+      };
+    } else if (presetType === 'featured') {
+      newLink = {
+        id: newId,
+        title: 'Auditoría Técnica de Entregabilidad',
+        url: '/#business-suite',
+        icon: 'globe',
+        highlight: true,
+        price: '$150 USD',
+      };
+    } else {
+      newLink = {
+        id: newId,
+        title: 'Nuevo Enlace Comercial',
+        url: 'https://miportal.me',
+        icon: 'globe',
+        highlight: false,
+      };
+    }
+
+    updateProfileField('links', [...profile.links, newLink]);
   };
 
-  // Add new service
-  const handleAddService = () => {
-    const newService: SiteService = {
-      id: `srv-${Date.now()}`,
-      title: 'Nuevo Servicio Comercial',
-      description: 'Describe brevemente qué incluye y cómo beneficia a tu cliente.',
-      price: '$100 USD',
-      url: site.whatsappNumber ? `https://wa.me/${site.whatsappNumber.replace(/[^0-9]/g, '')}` : '/',
-      badge: 'Nuevo',
-    };
-    updateField('services', [...site.services, newService]);
+  // Actualizar un enlace
+  const handleUpdateLink = (id: string, updates: Partial<BioLink>) => {
+    const updated = profile.links.map((link) => (link.id === id ? { ...link, ...updates } : link));
+    updateProfileField('links', updated);
   };
 
-  // Update specific service
-  const handleUpdateService = (id: string, updates: Partial<SiteService>) => {
-    const updated = site.services.map((s) => (s.id === id ? { ...s, ...updates } : s));
-    updateField('services', updated);
+  // Eliminar un enlace
+  const handleRemoveLink = (id: string) => {
+    const filtered = profile.links.filter((link) => link.id !== id);
+    updateProfileField('links', filtered);
   };
 
-  // Remove specific service
-  const handleRemoveService = (id: string) => {
-    const filtered = site.services.filter((s) => s.id !== id);
-    updateField('services', filtered);
+  // Reordenar enlaces
+  const handleMoveLink = (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= profile.links.length) return;
+
+    const reordered = [...profile.links];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(targetIndex, 0, moved);
+    updateProfileField('links', reordered);
   };
 
-  // Publish / Save site
-  const handlePublish = () => {
+  // Guardar y persistir en Supabase / LocalStorage
+  const handlePublish = async () => {
     setIsPublishing(true);
-    saveBioSite(site);
+    setPublishFeedback(null);
 
-    const publicUrl = `${window.location.origin}/p/${site.slug}`;
-    navigator.clipboard.writeText(publicUrl);
+    try {
+      const res = await saveBioProfile(profile);
 
-    setTimeout(() => {
+      if (res.syncedWithCloud) {
+        setPublishFeedback('¡Publicado y sincronizado con tu cuenta en la nube!');
+      } else {
+        setPublishFeedback('¡Guardado localmente listo para compartir!');
+      }
+      setHasUnsavedLocalChanges(false);
+    } catch {
+      setPublishFeedback('Guardado en navegador de prueba.');
+    } finally {
       setIsPublishing(false);
-      setPublishFeedback(`¡Página publicada exitosamente! El enlace https://deliverabilityguard.miportal.me/p/${site.slug} fue copiado al portapapeles.`);
-      setIsCopied(true);
-      setTimeout(() => setPublishFeedback(null), 5000);
-      setTimeout(() => setIsCopied(false), 3000);
-    }, 600);
+      setTimeout(() => setPublishFeedback(null), 4000);
+    }
   };
 
-  const publicPageHref = `/p/${site.slug}`;
+  // Copiar link público
+  const handleCopyLink = () => {
+    if (typeof window !== 'undefined') {
+      const publicUrl = `${window.location.origin}/p/${profile.slug}`;
+      navigator.clipboard.writeText(publicUrl);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2500);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased">
-      {/* Top Navbar */}
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
       <Navbar />
 
-      {/* Subheader / Action Bar */}
-      <div className="border-b border-slate-800 bg-slate-900/70 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between sticky top-16 z-30">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5 transition"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Volver al Inicio</span>
-          </Link>
-          <span className="text-slate-700 hidden sm:inline">/</span>
+      {/* Builder Sub-header / Command Bar */}
+      <div className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-16 z-30 px-4 sm:px-6 py-3">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+          {/* Breadcrumb & Slug */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="p-1.5 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+              title="Volver al inicio"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                  Constructor Bio Sites
+                </span>
+                <span className="text-slate-600 hidden sm:inline">•</span>
+                <span className="text-xs text-slate-400 font-mono hidden sm:inline">
+                  miportal.me/p/<span className="text-white font-semibold">{profile.slug}</span>
+                </span>
+              </div>
+              <h1 className="text-sm sm:text-base font-black text-white tracking-tight flex items-center gap-2">
+                <span>{profile.displayName || 'Mi Perfil Comercial'}</span>
+                {profile.isVerifiedSecurity && (
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" title="Verificado DeliverabilityGuard" />
+                )}
+              </h1>
+            </div>
+          </div>
+
+          {/* Action buttons */}
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-200">Editor en Vivo:</span>
-            <span className="font-mono text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
-              /p/{site.slug || 'slug'}
-            </span>
+            {/* Mobile View Switcher (Editor vs Preview) */}
+            <div className="flex lg:hidden bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+              <button
+                type="button"
+                onClick={() => setMobileView('editor')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${
+                  mobileView === 'editor' ? 'bg-emerald-500 text-slate-950' : 'text-slate-300'
+                }`}
+              >
+                Editor
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileView('preview')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition flex items-center gap-1 ${
+                  mobileView === 'preview' ? 'bg-emerald-500 text-slate-950' : 'text-slate-300'
+                }`}
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Vista Previa</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5 active:scale-95"
+              title="Copiar URL de tu perfil público"
+            >
+              {isCopied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-400 font-bold">¡Copiado!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="hidden sm:inline">Copiar Enlace</span>
+                </>
+              )}
+            </button>
+
+            <Link
+              href={`/p/${profile.slug}`}
+              target="_blank"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5"
+              title="Abrir página pública en una nueva pestaña"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+              <span className="hidden sm:inline">Ver Perfil</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={isPublishing}
+              className="px-4 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 disabled:opacity-50"
+            >
+              {isPublishing ? (
+                <span>Guardando...</span>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Publicar</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <Link
-            href={publicPageHref}
-            target="_blank"
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5 shadow-sm active:scale-95"
-            title="Abrir página pública en una nueva pestaña"
-          >
-            <Eye className="w-3.5 h-3.5 text-slate-400" />
-            <span className="hidden sm:inline">Ver en Vivo</span>
-          </Link>
-
-          <button
-            type="button"
-            onClick={handlePublish}
-            disabled={isPublishing}
-            className="px-4 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 transition flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 active:scale-95 disabled:opacity-50"
-          >
-            {isPublishing ? (
-              <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-            ) : isCopied ? (
-              <Check className="w-3.5 h-3.5 stroke-[3]" />
-            ) : (
-              <Share2 className="w-3.5 h-3.5" />
-            )}
-            <span>{isCopied ? '¡Enlace Copiado!' : 'Publicar Sitio'}</span>
-          </button>
-        </div>
+        {/* Temporary Feedback Notification */}
+        {publishFeedback && (
+          <div className="max-w-7xl mx-auto mt-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{publishFeedback}</span>
+            </div>
+            <Link href={`/p/${profile.slug}`} target="_blank" className="font-bold underline hover:text-white">
+              Abrir mi página &rarr;
+            </Link>
+          </div>
+        )}
       </div>
 
-      {/* Alert Feedback Toast */}
-      {publishFeedback && (
-        <div className="bg-emerald-950/80 border-b border-emerald-500/40 text-emerald-300 px-4 py-2.5 text-xs text-center font-medium animate-fade-in flex items-center justify-center gap-2">
-          <Check className="w-4 h-4 text-emerald-400" />
-          <span>{publishFeedback}</span>
-          <Link href={publicPageHref} target="_blank" className="underline font-bold hover:text-white">
-            Abrir página pública →
-          </Link>
-        </div>
-      )}
-
-      {/* Main Split Screen */}
-      <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* ========================================================= */}
-        {/* PANEL IZQUIERDO: FORMULARIO DE CONTROL Y EDICIÓN (7 COLS) */}
-        {/* ========================================================= */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          {/* Navigation Sub-Tabs */}
-          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-semibold overflow-x-auto">
+      {/* Main Studio Container */}
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex-1 flex flex-col lg:flex-row gap-8 items-start">
+        {/* LEFT COLUMN: Controls & Tabs */}
+        <div className={`w-full lg:w-7/12 flex flex-col gap-6 ${mobileView === 'preview' ? 'hidden lg:flex' : 'flex'}`}>
+          {/* Tabs Navigation */}
+          <div className="flex items-center gap-2 p-1 bg-slate-900 rounded-xl border border-slate-800 shadow-inner">
             <button
               type="button"
               onClick={() => setActiveTab('profile')}
-              className={`px-3 py-2 rounded-xl transition flex items-center gap-1.5 shrink-0 ${
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
                 activeTab === 'profile'
-                  ? 'bg-emerald-500 text-slate-950 font-bold shadow'
+                  ? 'bg-slate-800 text-white shadow-sm border border-slate-700'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Briefcase className="w-3.5 h-3.5" />
-              <span>1. Perfil & Marca</span>
+              <User className="w-4 h-4 text-emerald-400" />
+              <span>Perfil & Seguridad</span>
             </button>
 
             <button
               type="button"
-              onClick={() => setActiveTab('contact')}
-              className={`px-3 py-2 rounded-xl transition flex items-center gap-1.5 shrink-0 ${
-                activeTab === 'contact'
-                  ? 'bg-emerald-500 text-slate-950 font-bold shadow'
+              onClick={() => setActiveTab('links')}
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
+                activeTab === 'links'
+                  ? 'bg-slate-800 text-white shadow-sm border border-slate-700'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <MessageCircle className="w-3.5 h-3.5" />
-              <span>2. Contacto Directo</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('services')}
-              className={`px-3 py-2 rounded-xl transition flex items-center gap-1.5 shrink-0 ${
-                activeTab === 'services'
-                  ? 'bg-emerald-500 text-slate-950 font-bold shadow'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>3. Catálogo de Servicios ({site.services.length})</span>
+              <LinkIcon className="w-4 h-4 text-indigo-400" />
+              <span>Enlaces ({profile.links.length})</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('theme')}
-              className={`px-3 py-2 rounded-xl transition flex items-center gap-1.5 shrink-0 ${
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
                 activeTab === 'theme'
-                  ? 'bg-emerald-500 text-slate-950 font-bold shadow'
+                  ? 'bg-slate-800 text-white shadow-sm border border-slate-700'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Palette className="w-3.5 h-3.5" />
-              <span>4. Tema Visual</span>
+              <Palette className="w-4 h-4 text-amber-400" />
+              <span>Temas & Estilo</span>
             </button>
           </div>
 
-          {/* Form Content Cards */}
-          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-xl space-y-5">
-            {/* TAB 1: IDENTIDAD Y MARCA */}
-            {activeTab === 'profile' && (
-              <div className="space-y-4 animate-fade-in">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-emerald-400" />
-                    Identidad Comercial y Enlace Único
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Define la presencia que verán tus clientes al acceder a tu enlace.
-                  </p>
+          {/* TAB 1: PERFIL */}
+          {activeTab === 'profile' && (
+            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-6">
+              <div>
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-2">
+                  <User className="w-4 h-4 text-emerald-400" />
+                  <span>Identidad de la Marca Personal</span>
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Personaliza tu nombre, avatar fotográfico y la URL corta de tu perfil comercial.
+                </p>
+              </div>
+
+              {/* Display Name */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">Nombre Público o Comercial</label>
+                <input
+                  type="text"
+                  value={profile.displayName}
+                  onChange={(e) => updateProfileField('displayName', e.target.value)}
+                  placeholder="ej. Alejandro Morales"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:border-emerald-500 focus:outline-none transition"
+                />
+              </div>
+
+              {/* Bio */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-semibold text-slate-300">Biografía / Propuesta de Valor</label>
+                  <span className="text-[11px] text-slate-500">{profile.bio.length} / 180</span>
                 </div>
+                <textarea
+                  rows={3}
+                  value={profile.bio}
+                  onChange={(e) => updateProfileField('bio', e.target.value)}
+                  placeholder="Describe en 1 o 2 frases qué haces y cómo ayudas a tus clientes..."
+                  maxLength={180}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:border-emerald-500 focus:outline-none transition resize-none"
+                />
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Nombre Comercial */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-300">
-                      Nombre Profesional / Comercial:
-                    </label>
-                    <input
-                      type="text"
-                      value={site.name}
-                      onChange={(e) => updateField('name', e.target.value)}
-                      placeholder="Ej. Alejandro Morales"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500 transition"
-                    />
-                  </div>
-
-                  {/* Slug / Handle */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-300">
-                      Enlace Personalizado (Slug):
-                    </label>
-                    <div className="flex items-center rounded-xl bg-slate-950 border border-slate-800 px-3 py-2 focus-within:border-emerald-500 transition">
-                      <span className="text-xs text-slate-500 font-mono">/p/</span>
-                      <input
-                        type="text"
-                        value={site.slug}
-                        onChange={(e) => handleSlugChange(e.target.value)}
-                        placeholder="tu-nombre"
-                        className="w-full bg-transparent text-emerald-400 font-mono text-xs focus:outline-none pl-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Título Profesional */}
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-300">
-                    Título Profesional / Especialidad:
-                  </label>
+              {/* Slug */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">Slug / Enlace Personalizado</label>
+                <div className="flex rounded-xl overflow-hidden border border-slate-800 bg-slate-950 focus-within:border-emerald-500">
+                  <span className="px-3 py-2.5 bg-slate-900 text-xs font-mono text-slate-400 border-r border-slate-800 flex items-center">
+                    miportal.me/p/
+                  </span>
                   <input
                     type="text"
-                    value={site.title}
-                    onChange={(e) => updateField('title', e.target.value)}
-                    placeholder="Ej. Consultor de Ciberseguridad & Arquitectura Cloud"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500 transition"
-                  />
-                </div>
-
-                {/* Biografía */}
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-300">
-                    Propuesta de Valor / Biografía Corta:
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={site.bio}
-                    onChange={(e) => updateField('bio', e.target.value)}
-                    placeholder="Describe en pocas líneas cómo resuelves los problemas de tus clientes..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500 transition leading-relaxed"
-                  />
-                </div>
-
-                {/* Avatar URL & Dominio Verificado */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-300">
-                      URL del Avatar / Foto:
-                    </label>
-                    <input
-                      type="url"
-                      value={site.avatarUrl || ''}
-                      onChange={(e) => updateField('avatarUrl', e.target.value)}
-                      placeholder="https://images.unsplash.com/..."
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500 transition"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-300 flex items-center justify-between">
-                      <span>Dominio Propio (Insignia Verificada):</span>
-                    </label>
-                    <div className="relative flex items-center">
-                      <Globe className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
-                      <input
-                        type="text"
-                        value={site.domain || ''}
-                        onChange={(e) => updateField('domain', e.target.value)}
-                        placeholder="tuempresa.com"
-                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs font-mono focus:outline-none focus:border-emerald-500 transition"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Specialty Badges */}
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-300">
-                    Insignias de Especialidad (Separadas por comas):
-                  </label>
-                  <input
-                    type="text"
-                    value={badgesInput}
-                    onChange={(e) => handleBadgesChange(e.target.value)}
-                    placeholder="Cloud Architect, DMARC Specialist, Fintech Advisor"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500 transition"
+                    value={profile.slug}
+                    onChange={(e) => handleSlugChange(e.target.value)}
+                    placeholder="tu-nombre"
+                    className="flex-1 px-3 py-2.5 bg-transparent text-white text-sm font-mono focus:outline-none"
                   />
                 </div>
               </div>
-            )}
 
-            {/* TAB 2: CANALES DE CONTACTO */}
-            {activeTab === 'contact' && (
-              <div className="space-y-4 animate-fade-in">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                    <MessageCircle className="w-4 h-4 text-emerald-400" />
-                    Canales de Conversión y Contacto Directo
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Permite que tus prospectos inicien una conversación en 1 clic.
-                  </p>
-                </div>
+              {/* Avatar URL & Presets */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-300">Foto de Perfil (Avatar)</label>
+                <input
+                  type="text"
+                  value={profile.avatarUrl}
+                  onChange={(e) => updateProfileField('avatarUrl', e.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-mono focus:border-emerald-500 focus:outline-none transition"
+                />
 
-                {/* WhatsApp */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-300">
-                      Número de WhatsApp (con código de país):
-                    </label>
-                    <input
-                      type="text"
-                      value={site.whatsappNumber || ''}
-                      onChange={(e) => updateField('whatsappNumber', e.target.value)}
-                      placeholder="+573001234567"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs font-mono focus:outline-none focus:border-emerald-500 transition"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-300">
-                      Mensaje Predeterminado en WhatsApp:
-                    </label>
-                    <input
-                      type="text"
-                      value={site.whatsappMessage || ''}
-                      onChange={(e) => updateField('whatsappMessage', e.target.value)}
-                      placeholder="Hola, me gustaría cotizar un proyecto."
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500 transition"
-                    />
-                  </div>
-                </div>
-
-                {/* Correo y Calendly */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-300">
-                      Correo Electrónico de Negocios:
-                    </label>
-                    <input
-                      type="email"
-                      value={site.email || ''}
-                      onChange={(e) => updateField('email', e.target.value)}
-                      placeholder="contacto@tuempresa.com"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500 transition"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-300">
-                      Enlace de Citas (Cal.com / Calendly):
-                    </label>
-                    <input
-                      type="url"
-                      value={site.calendarUrl || ''}
-                      onChange={(e) => updateField('calendarUrl', e.target.value)}
-                      placeholder="https://cal.com/tu-usuario"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500 transition"
-                    />
+                {/* Preset Avatars */}
+                <div className="pt-2">
+                  <span className="text-[11px] font-semibold text-slate-400 block mb-2">
+                    O elige un avatar sugerido para probar:
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {AVATAR_PRESETS.map((preset) => (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => updateProfileField('avatarUrl', preset.url)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs transition ${
+                          profile.avatarUrl === preset.url
+                            ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-300'
+                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={preset.url} alt={preset.name} className="w-5 h-5 rounded-full object-cover" />
+                        <span>{preset.name}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* TAB 3: CATÁLOGO DE SERVICIOS */}
-            {activeTab === 'services' && (
-              <div className="space-y-4 animate-fade-in">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-emerald-400" />
-                      Catálogo de Servicios y Enlaces Comerciales
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Presenta tus paquetes de servicio con precios de referencia transparentes.
+              {/* DeliverabilityGuard Security Badge Toggle */}
+              <div className="pt-3 border-t border-slate-800">
+                <div className="p-4 rounded-xl bg-slate-950 border border-emerald-500/30 flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <span className="text-xs font-bold text-white">Insignia de Seguridad DeliverabilityGuard</span>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 uppercase">
+                        Oficial
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      Muestra a tus visitantes que tu dominio, identidad y directivas RFC de correo están auditadas y
+                      verificadas contra spoofing y phishing.
                     </p>
                   </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+                    <input
+                      type="checkbox"
+                      checked={profile.isVerifiedSecurity}
+                      onChange={(e) => updateProfileField('isVerifiedSecurity', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
 
-                  <button
-                    type="button"
-                    onClick={handleAddService}
-                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 transition flex items-center gap-1.5 shadow-sm active:scale-95"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Añadir Servicio</span>
-                  </button>
+          {/* TAB 2: ENLACES */}
+          {activeTab === 'links' && (
+            <div className="space-y-4">
+              {/* Header with Quick Add Presets */}
+              <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-2">
+                    <LinkIcon className="w-4 h-4 text-indigo-400" />
+                    <span>Enlaces y Servicios Directos</span>
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Añade botones para tus servicios, calendarios de cita o redes sociales al estilo Bio Sites.
+                  </p>
                 </div>
 
-                <div className="space-y-3">
-                  {site.services.map((service, index) => (
-                    <div
-                      key={service.id}
-                      className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 relative group"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold">
-                          Servicio #{index + 1}
-                        </span>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleAddLink('whatsapp')}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/20 transition flex items-center gap-1.5"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>+ WhatsApp</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddLink('calendar')}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-indigo-500/20 transition flex items-center gap-1.5"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>+ Cita Cal.com</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddLink()}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Añadir Enlace</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Links List */}
+              <div className="space-y-3">
+                {profile.links.map((link, index) => (
+                  <div
+                    key={link.id}
+                    className={`p-4 rounded-xl border transition-all ${
+                      link.highlight
+                        ? 'bg-slate-900/90 border-indigo-500/40 shadow-sm'
+                        : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-2">
+                        {/* Drag / Reorder buttons */}
+                        <div className="flex flex-col gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveLink(index, 'up')}
+                            disabled={index === 0}
+                            className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 disabled:opacity-30 disabled:pointer-events-none transition"
+                            title="Subir posición"
+                          >
+                            <ArrowUp className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveLink(index, 'down')}
+                            disabled={index === profile.links.length - 1}
+                            className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 disabled:opacity-30 disabled:pointer-events-none transition"
+                            title="Bajar posición"
+                          >
+                            <ArrowDown className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        {/* Icon display */}
+                        <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-300">
+                          {renderBioIcon(link.icon, 'w-4 h-4')}
+                        </div>
+
+                        <span className="text-xs font-bold text-white">Enlace #{index + 1}</span>
+                        {link.highlight && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
+                            <Flame className="w-2.5 h-2.5 text-indigo-400" />
+                            <span>Destacado</span>
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {/* Highlight Toggle */}
                         <button
                           type="button"
-                          onClick={() => handleRemoveService(service.id)}
-                          className="text-slate-500 hover:text-rose-400 transition p-1"
-                          title="Eliminar este servicio"
+                          onClick={() => handleUpdateLink(link.id, { highlight: !link.highlight })}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition ${
+                            link.highlight
+                              ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                              : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                          }`}
+                          title="Resaltar con brillo y jerarquía en el perfil"
+                        >
+                          {link.highlight ? '★ Resaltado' : '☆ Resaltar'}
+                        </button>
+
+                        {/* Delete button */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLink(link.id)}
+                          className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700/60 transition"
+                          title="Eliminar este enlace"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
+                    </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="sm:col-span-2 space-y-1">
-                          <label className="text-[11px] font-medium text-slate-400">
-                            Título del Servicio:
-                          </label>
-                          <input
-                            type="text"
-                            value={service.title}
-                            onChange={(e) =>
-                              handleUpdateService(service.id, { title: e.target.value })
-                            }
-                            placeholder="Ej. Auditoría DNS y Blindaje DMARC"
-                            className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-medium text-slate-400">
-                            Precio Referencial:
-                          </label>
-                          <input
-                            type="text"
-                            value={service.price || ''}
-                            onChange={(e) =>
-                              handleUpdateService(service.id, { price: e.target.value })
-                            }
-                            placeholder="$150 USD"
-                            className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-emerald-400 focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-medium text-slate-400">
-                          Descripción Corta:
-                        </label>
+                    {/* Inputs Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-400 block mb-1">Título del Botón</label>
                         <input
                           type="text"
-                          value={service.description}
-                          onChange={(e) =>
-                            handleUpdateService(service.id, { description: e.target.value })
-                          }
-                          placeholder="Qué incluye el entregable..."
-                          className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-300 focus:outline-none focus:border-emerald-500"
+                          value={link.title}
+                          onChange={(e) => handleUpdateLink(link.id, { title: e.target.value })}
+                          placeholder="ej. Auditoría DNS Completa"
+                          className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white text-xs focus:border-indigo-500 focus:outline-none transition"
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-medium text-slate-400">
-                            Enlace / URL de Destino:
-                          </label>
-                          <input
-                            type="text"
-                            value={service.url}
-                            onChange={(e) =>
-                              handleUpdateService(service.id, { url: e.target.value })
-                            }
-                            placeholder="https://wa.me/... o /#business-suite"
-                            className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-400 block mb-1">URL de Destino</label>
+                        <input
+                          type="text"
+                          value={link.url}
+                          onChange={(e) => handleUpdateLink(link.id, { url: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white text-xs font-mono focus:border-indigo-500 focus:outline-none transition"
+                        />
+                      </div>
 
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-medium text-slate-400">
-                            Badge Destacado (Opcional):
-                          </label>
-                          <input
-                            type="text"
-                            value={service.badge || ''}
-                            onChange={(e) =>
-                              handleUpdateService(service.id, { badge: e.target.value })
-                            }
-                            placeholder="Más Solicitado / Promo"
-                            className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-cyan-300 focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-400 block mb-1">Icono</label>
+                        <select
+                          value={link.icon || 'globe'}
+                          onChange={(e) => handleUpdateLink(link.id, { icon: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white text-xs focus:border-indigo-500 focus:outline-none transition"
+                        >
+                          {ICON_OPTIONS.map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-400 block mb-1">
+                          Precio / Badge Opcional (para monetizar)
+                        </label>
+                        <input
+                          type="text"
+                          value={link.price || ''}
+                          onChange={(e) => handleUpdateLink(link.id, { price: e.target.value })}
+                          placeholder="ej. $150 USD o Gratis"
+                          className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white text-xs focus:border-indigo-500 focus:outline-none transition"
+                        />
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+
+                {profile.links.length === 0 && (
+                  <div className="p-8 text-center rounded-2xl border border-dashed border-slate-800 bg-slate-900/30">
+                    <p className="text-xs text-slate-400 mb-3">No has añadido ningún enlace todavía.</p>
+                    <button
+                      type="button"
+                      onClick={() => handleAddLink()}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition"
+                    >
+                      Añadir Primer Enlace
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* TAB 4: TEMA VISUAL */}
-            {activeTab === 'theme' && (
-              <div className="space-y-4 animate-fade-in">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                    <Palette className="w-4 h-4 text-emerald-400" />
-                    Selección de Tema y Estilo Visual
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Personaliza la paleta de colores para que combine con la identidad de tu marca.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                  {/* Tema 1: Emerald Guard */}
-                  <button
-                    type="button"
-                    onClick={() => updateField('theme', 'emerald')}
-                    className={`p-4 rounded-2xl border text-left transition flex flex-col gap-2 relative ${
-                      site.theme === 'emerald'
-                        ? 'bg-slate-900 border-emerald-500 shadow-lg shadow-emerald-500/10'
-                        : 'bg-slate-950 border-slate-800 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-emerald-400">🌿 Emerald Guard</span>
-                      {site.theme === 'emerald' && (
-                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-400 leading-snug">
-                      Verde esmeralda y teal sobre slate profundo. Ideal para consultores y ciberseguridad.
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <span className="w-4 h-4 rounded-full bg-emerald-500" />
-                      <span className="w-4 h-4 rounded-full bg-teal-400" />
-                      <span className="w-4 h-4 rounded-full bg-slate-900 border border-slate-700" />
-                    </div>
-                  </button>
-
-                  {/* Tema 2: Dark Cyberpunk */}
-                  <button
-                    type="button"
-                    onClick={() => updateField('theme', 'cyberpunk')}
-                    className={`p-4 rounded-2xl border text-left transition flex flex-col gap-2 relative ${
-                      site.theme === 'cyberpunk'
-                        ? 'bg-[#120b2f] border-cyan-400 shadow-lg shadow-cyan-500/20'
-                        : 'bg-slate-950 border-slate-800 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-cyan-400">🔮 Dark Cyberpunk</span>
-                      {site.theme === 'cyberpunk' && (
-                        <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-400 leading-snug">
-                      Neón cian y violeta eléctrico sobre oscuridad total. Ideal para agencias tech y creadores.
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <span className="w-4 h-4 rounded-full bg-cyan-400" />
-                      <span className="w-4 h-4 rounded-full bg-fuchsia-500" />
-                      <span className="w-4 h-4 rounded-full bg-[#120b2f] border border-purple-800" />
-                    </div>
-                  </button>
-
-                  {/* Tema 3: Minimal Slate */}
-                  <button
-                    type="button"
-                    onClick={() => updateField('theme', 'minimal')}
-                    className={`p-4 rounded-2xl border text-left transition flex flex-col gap-2 relative ${
-                      site.theme === 'minimal'
-                        ? 'bg-zinc-900 border-zinc-500 shadow-lg'
-                        : 'bg-slate-950 border-slate-800 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-zinc-200">⚪ Minimal Slate</span>
-                      {site.theme === 'minimal' && (
-                        <div className="w-2 h-2 rounded-full bg-zinc-200" />
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-400 leading-snug">
-                      Monocromo ultra limpio y sobrio estilo Linear o Apple. Para perfiles corporativos sobrios.
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <span className="w-4 h-4 rounded-full bg-zinc-100" />
-                      <span className="w-4 h-4 rounded-full bg-zinc-500" />
-                      <span className="w-4 h-4 rounded-full bg-zinc-950 border border-zinc-800" />
-                    </div>
-                  </button>
-                </div>
+          {/* TAB 3: TEMAS */}
+          {activeTab === 'theme' && (
+            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-5">
+              <div>
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-2">
+                  <Palette className="w-4 h-4 text-amber-400" />
+                  <span>Estilo & Paleta Visual</span>
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Inspirado en Squarespace Bio Sites con 5 temas diseñados profesionalmente.
+                </p>
               </div>
-            )}
-          </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {THEME_OPTIONS.map((theme) => {
+                  const isSelected = profile.theme === theme.id;
+                  return (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      onClick={() => updateProfileField('theme', theme.id)}
+                      className={`text-left p-4 rounded-xl border transition-all relative ${
+                        isSelected
+                          ? 'bg-slate-800/90 border-emerald-500 shadow-md shadow-emerald-950/40 ring-1 ring-emerald-500/50'
+                          : 'bg-slate-950/70 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-white">{theme.name}</span>
+                        {isSelected && (
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Color swatches */}
+                      <div className="flex items-center gap-1.5 mb-2.5">
+                        {theme.colors.map((c, i) => (
+                          <div
+                            key={i}
+                            className="w-5 h-5 rounded-full border border-slate-700/60 shadow-sm"
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+
+                      <p className="text-[11px] text-slate-400 leading-snug">{theme.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* ========================================================= */}
-        {/* PANEL DERECHO: MOCKUP MÓVIL EN VIVO (5 COLS)              */}
-        {/* ========================================================= */}
-        <div className="lg:col-span-5 flex flex-col items-center justify-center sticky top-36">
-          <div className="flex items-center gap-2 mb-3 text-xs text-slate-400 font-mono">
-            <Smartphone className="w-4 h-4 text-emerald-400" />
-            <span>Previsualización Móvil en Tiempo Real</span>
-          </div>
+        {/* RIGHT COLUMN: Realistic Smartphone Mockup Live Preview */}
+        <div
+          className={`w-full lg:w-5/12 sticky top-36 flex flex-col items-center justify-center ${
+            mobileView === 'editor' ? 'hidden lg:flex' : 'flex'
+          }`}
+        >
+          {/* Mockup Frame Container */}
+          <div className="relative w-full max-w-[340px] sm:max-w-[360px]">
+            {/* Ambient Back Glow matching theme */}
+            <div
+              className={`absolute -inset-4 rounded-[50px] opacity-25 blur-2xl transition-all duration-500 ${
+                profile.theme === 'emerald'
+                  ? 'bg-emerald-500'
+                  : profile.theme === 'cyber'
+                  ? 'bg-cyan-500'
+                  : profile.theme === 'sunset'
+                  ? 'bg-rose-500'
+                  : profile.theme === 'minimal-light'
+                  ? 'bg-zinc-400'
+                  : 'bg-indigo-500'
+              }`}
+            />
 
-          {/* Marco de Smartphone Estilizado */}
-          <div className="w-[340px] sm:w-[370px] h-[680px] bg-slate-900 rounded-[48px] p-3.5 shadow-2xl border-4 border-slate-800 relative ring-1 ring-slate-700/50 flex flex-col">
-            {/* Altavoz y Cámara Frontal / Dynamic Island */}
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 w-28 h-5 bg-slate-950 rounded-full z-20 flex items-center justify-center">
-              <div className="w-2.5 h-2.5 rounded-full bg-slate-900 ml-auto mr-3" />
-            </div>
-
-            {/* Pantalla Interna con Scroll Independiente */}
-            <div className="w-full h-full rounded-[38px] overflow-y-auto overflow-x-hidden bg-slate-950 relative scrollbar-none">
-              {/* Barra de Estado Ficticia */}
-              <div className="w-full px-6 pt-3 pb-1 flex items-center justify-between text-[10px] font-mono text-slate-400 z-10 sticky top-0 bg-slate-950/80 backdrop-blur-md">
-                <span>9:41</span>
-                <div className="flex items-center gap-1">
-                  <span>5G</span>
-                  <div className="w-4 h-2 border border-slate-400 rounded-sm p-0.5 flex items-center">
-                    <div className="w-full h-full bg-slate-400 rounded-2xs" />
-                  </div>
-                </div>
+            {/* Smartphone Outer Shell */}
+            <div className="relative rounded-[44px] p-3 bg-gradient-to-b from-slate-700 via-slate-800 to-slate-900 shadow-2xl border-4 border-slate-800">
+              {/* Phone Speaker Notch */}
+              <div className="absolute top-5 left-1/2 -translate-x-1/2 w-28 h-4 bg-slate-950 rounded-full z-20 flex items-center justify-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-slate-800" />
+                <div className="w-8 h-1 rounded-full bg-slate-800" />
               </div>
 
-              {/* Contenido Real del Perfil */}
-              <div className="pt-2 pb-8">
-                <PublicProfileView site={site} isEmbed={true} />
+              {/* Screen Mockup Inner Canvas */}
+              <div className="relative w-full h-[620px] rounded-[36px] overflow-hidden overflow-y-auto no-scrollbar shadow-inner bg-slate-950 border border-slate-900">
+                <BioProfileCard profile={profile} isEmbed={true} />
               </div>
+
+              {/* Bottom Home Indicator Bar */}
+              <div className="w-28 h-1 bg-slate-600/70 rounded-full mx-auto mt-2" />
             </div>
 
-            {/* Barra Inferior del Dispositivo (Home Indicator) */}
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-600 rounded-full pointer-events-none" />
+            {/* Device Footer Note */}
+            <div className="mt-3 text-center">
+              <span className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5 font-medium">
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Vista previa interactiva en tiempo real</span>
+              </span>
+            </div>
           </div>
         </div>
       </div>
