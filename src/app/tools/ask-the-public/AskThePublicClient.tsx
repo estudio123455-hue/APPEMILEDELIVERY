@@ -34,6 +34,7 @@ import { createClient } from '@/utils/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import MarketPaywall from '@/components/paywall/MarketPaywall';
 import { BOLD_SERVICES, formatCOP } from '@/config/payments';
+import { isUserSuperAdmin } from '@/config/admin';
 import AnswerThePublicWheel, { type WheelType } from '@/components/tools/AnswerThePublicWheel';
 
 
@@ -89,6 +90,13 @@ export default function AskThePublicClient() {
         const today = getTodayDateString();
 
         if (user) {
+          // Si el usuario es Super Admin, conceder acceso Pro ilimitado inmediatamente
+          if (isUserSuperAdmin(user)) {
+            setIsPro(true);
+            setDailySearchesCount(0);
+            return;
+          }
+
           // Consultar tabla user_usage en Supabase
           const { data: usageData } = await (supabase as any)
             .from('user_usage')
@@ -157,8 +165,10 @@ export default function AskThePublicClient() {
       return;
     }
 
-    // Regla Freemium: Si NO es Pro y ya realizó 1 búsqueda hoy, abrir Modal ChatGPT Pro
-    if (!isPro && dailySearchesCount >= 1) {
+    const isAdmin = isUserSuperAdmin(user);
+
+    // Regla Freemium: Si NO es Pro ni Admin y ya realizó 1 búsqueda hoy, abrir Modal ChatGPT Pro
+    if (!isPro && !isAdmin && dailySearchesCount >= 1) {
       triggerProModal(
         'Has alcanzado el límite gratuito diario',
         'Desbloquea búsquedas ilimitadas, matrices completas de 10 keywords y reportes PDF con IA.'
@@ -517,7 +527,7 @@ export default function AskThePublicClient() {
               <button
                 type="button"
                 onClick={() => {
-                if (!isPro) {
+                if (!isPro && !isUserSuperAdmin(user)) {
                   triggerProModal(
                     'Has alcanzado el límite gratuito diario',
                     'Desbloquea búsquedas ilimitadas, matrices completas de 10 keywords y reportes PDF con IA.'
@@ -560,7 +570,7 @@ export default function AskThePublicClient() {
                 <button
                   type="button"
                   onClick={() => {
-                  if (!isPro && dailySearchesCount >= 1) {
+                  if (!isPro && !isUserSuperAdmin(user) && dailySearchesCount >= 1) {
                     triggerProModal(
                       'Rueda SVG Completa Exclusiva Pro',
                       'Desbloquea la visualización vectorial interactiva completa y ruedas SVG con tu Pase Pro.'

@@ -17,6 +17,7 @@ import {
   Radio,
 } from 'lucide-react';
 import SuiteSwitcher from './SuiteSwitcher';
+import { isUserSuperAdmin } from '@/config/admin';
 import { createClient } from '@/utils/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
@@ -251,6 +252,11 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
                       <p className="text-[11px] text-slate-400 truncate mt-0.5 font-mono">
                         {user.email}
                       </p>
+                      {isUserSuperAdmin(user) && (
+                        <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                          <span>⚡ Super Admin Pro</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="py-1.5 space-y-0.5">

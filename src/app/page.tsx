@@ -16,6 +16,7 @@ import DnsPaywall from '@/components/paywall/DnsPaywall';
 import DnsBlindajeModal from '@/components/paywall/DnsBlindajeModal';
 import Footer from '@/components/Footer';
 import { BOLD_SERVICES } from '@/config/payments';
+import { isUserSuperAdmin, isSuperAdminEmail } from '@/config/admin';
 import {
   FileDown,
   Sparkles,
@@ -58,6 +59,8 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [isSavingDomain, setIsSavingDomain] = useState(false);
   const [saveDomainFeedback, setSaveDomainFeedback] = useState<string | null>(null);
+  const [isUserPro, setIsUserPro] = useState(false);
+  const [isUserShieldActive, setIsUserShieldActive] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -65,7 +68,11 @@ export default function Home() {
 
     async function evaluateAssuranceLevel(candidateUser: User | null) {
       if (!candidateUser) {
-        if (isMounted) setUser(null);
+        if (isMounted) {
+          setUser(null);
+          setIsUserPro(false);
+          setIsUserShieldActive(false);
+        }
         return;
       }
 
@@ -74,18 +81,53 @@ export default function Home() {
           await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
 
         if (error) {
-          if (isMounted) setUser(null);
+          if (isMounted) {
+            setUser(null);
+            setIsUserPro(false);
+            setIsUserShieldActive(false);
+          }
           return;
         }
 
         if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel !== 'aal2') {
-          if (isMounted) setUser(null);
+          if (isMounted) {
+            setUser(null);
+            setIsUserPro(false);
+            setIsUserShieldActive(false);
+          }
           return;
         }
 
-        if (isMounted) setUser(candidateUser);
+        if (isMounted) {
+          setUser(candidateUser);
+
+          // Bypass automático para Super Admin o carga de user_usage
+          if (isUserSuperAdmin(candidateUser)) {
+            setIsUserPro(true);
+            setIsUserShieldActive(true);
+          } else {
+            try {
+              const { data: usageData } = await (supabase as any)
+                .from('user_usage')
+                .select('*')
+                .eq('user_id', candidateUser.id)
+                .maybeSingle();
+
+              if (usageData && isMounted) {
+                setIsUserPro(Boolean(usageData.is_pro));
+                setIsUserShieldActive(Boolean(usageData.dns_shield_active));
+              }
+            } catch (usageErr) {
+              console.warn('Error loading user_usage:', usageErr);
+            }
+          }
+        }
       } catch {
-        if (isMounted) setUser(null);
+        if (isMounted) {
+          setUser(null);
+          setIsUserPro(false);
+          setIsUserShieldActive(false);
+        }
       }
     }
 
@@ -233,6 +275,24 @@ export default function Home() {
       }, 4000);
     } finally {
       setIsSavingDomain(false);
+    }
+  };
+
+  // Descarga inmediata del Informe PDF Ejecutivo
+  const handleDownloadExecutivePdf = () => {
+    try {
+      const isAdmin = isUserSuperAdmin(user);
+      // Si el usuario es Super Admin, o tiene servicio activo de blindaje / plan pro:
+      if (isAdmin || isUserPro || isUserShieldActive) {
+        window.print();
+        return;
+      }
+
+      // Si no tiene privilegios, abrir el modal de blindaje para contratación
+      setShowDnsBlindajeModal(true);
+    } catch (err) {
+      console.error('[PDF EXPORT ERROR]:', err);
+      window.print();
     }
   };
 
@@ -753,17 +813,28 @@ export default function Home() {
                         {/* Acciones Freemium: Descargar PDF Ejecutivo y Doctor DNS */}
                         <button
                           type="button"
-                          onClick={() => setShowDnsBlindajeModal(true)}
+                          onClick={handleDownloadExecutivePdf}
                           className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 shadow-sm active:scale-[0.98] cursor-pointer"
                           title="Descargar Informe PDF Ejecutivo Certificado"
                         >
                           <FileDown className="w-4 h-4 text-emerald-400" />
                           <span>Descargar Informe PDF Ejecutivo</span>
+                          {isUserSuperAdmin(user) && (
+                            <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                              SUPER ADMIN
+                            </span>
+                          )}
                         </button>
 
                         <button
                           type="button"
-                          onClick={() => setShowDnsBlindajeModal(true)}
+                          onClick={() => {
+                            if (isUserSuperAdmin(user) || isUserShieldActive) {
+                              alert('Tienes blindaje prioritario activo como Super Admin en DeliverabilityGuard.');
+                            } else {
+                              setShowDnsBlindajeModal(true);
+                            }
+                          }}
                           className="bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 shadow-sm active:scale-[0.98] cursor-pointer"
                           title="Doctor DNS — Asistencia técnica y blindaje en 24h"
                         >
@@ -1380,15 +1451,22 @@ export default function Home() {
                             </p>
                           </div>
                         </div>
-                        <a
-                          href={BOLD_SERVICES.dnsBlindaje.checkoutUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 shrink-0"
-                        >
-                          <span>Contratar Blindaje — $150.000 COP</span>
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
+                        {isUserSuperAdmin(user) || isUserShieldActive ? (
+                          <div className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center justify-center gap-2">
+                            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                            <span>Blindaje Activo (Super Admin)</span>
+                          </div>
+                        ) : (
+                          <a
+                            href={BOLD_SERVICES.dnsBlindaje.checkoutUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 shrink-0"
+                          >
+                            <span>Contratar Blindaje — $150.000 COP</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
                       </div>
                     </div>
                   )}
