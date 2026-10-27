@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/navigation/Navbar';
 import InvoicePreview from '@/components/business/InvoicePreview';
+import { BOLD_SERVICES, formatCOP } from '@/config/payments';
 import {
   InvoiceData,
   InvoiceItem,
@@ -696,16 +697,31 @@ export default function BusinessPage() {
                   <label className="text-xs font-semibold text-slate-300 block">
                     Enlace de Pago Directo (Bold, Wompi, Stripe, PSE)
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateConfig('paymentLink', 'https://checkout.bold.co/payment/LNK_33UADDKUTL');
-                      updateConfig('paymentGatewayName', 'Bold Checkout (Oficial)');
-                    }}
-                    className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold underline cursor-pointer"
-                  >
-                    Usar Link Oficial de Bold
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateConfig('paymentLink', BOLD_SERVICES.dnsBlindaje.checkoutUrl);
+                        updateConfig('paymentGatewayName', 'Bold Checkout (Oficial)');
+                      }}
+                      className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold underline cursor-pointer"
+                      title="Auditoría DNS & Blindaje ($150.000 COP)"
+                    >
+                      Bold DNS ($150k)
+                    </button>
+                    <span className="text-slate-600 text-[10px]">•</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateConfig('paymentLink', BOLD_SERVICES.marketIntelligencePro.checkoutUrl);
+                        updateConfig('paymentGatewayName', 'Bold Checkout (Oficial)');
+                      }}
+                      className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold underline cursor-pointer"
+                      title="Pase Pro Mercado ($49.000 COP)"
+                    >
+                      Bold Mercado ($49k)
+                    </button>
+                  </div>
                 </div>
                 <div className="flex rounded-xl overflow-hidden border border-slate-800 bg-slate-950 focus-within:border-cyan-500">
                   <span className="px-3 py-2.5 bg-slate-900 text-xs font-mono text-slate-400 border-r border-slate-800 flex items-center">
@@ -719,12 +735,12 @@ export default function BusinessPage() {
                       const fullUrl = val ? (val.startsWith('http') ? val : `https://${val}`) : '';
                       updateConfig('paymentLink', fullUrl);
                     }}
-                    placeholder="checkout.bold.co/payment/LNK_33UADDKUTL"
+                    placeholder={BOLD_SERVICES.dnsBlindaje.checkoutUrl.replace(/^https?:\/\//i, '')}
                     className="flex-1 px-3 py-2.5 bg-transparent text-white text-xs font-mono focus:outline-none"
                   />
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Tu cliente verá un botón interactivo para pagar directamente con tarjeta débito, crédito o PSE desde esta cotización. Configurado por defecto con Bold Oficial ($150.000 COP).
+                  Tu cliente verá un botón interactivo para pagar directamente con tarjeta débito, crédito o PSE desde esta cotización. Enlaces oficiales de Bold integrados ($150.000 COP y $49.000 COP).
                 </p>
               </div>
 

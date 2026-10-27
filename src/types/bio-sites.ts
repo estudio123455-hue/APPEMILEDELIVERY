@@ -1,3 +1,5 @@
+import { BOLD_SERVICES, formatCOP } from '@/config/payments';
+
 export interface BioLink {
   id: string;
   title: string;
@@ -28,12 +30,20 @@ export const DEMO_BIO_PROFILE: BioProfile = {
   isVerifiedSecurity: true,
   links: [
     {
-      id: 'demo-bold',
-      title: 'Auditoría DNS & Blindaje de Correo (DeliverabilityGuard)',
-      url: 'https://checkout.bold.co/payment/LNK_33UADDKUTL',
-      price: '$150.000 COP',
+      id: 'demo-bold-dns',
+      title: BOLD_SERVICES.dnsBlindaje.name,
+      url: BOLD_SERVICES.dnsBlindaje.checkoutUrl,
+      price: formatCOP(BOLD_SERVICES.dnsBlindaje.amountCOP),
       icon: 'shield',
       highlight: true,
+    },
+    {
+      id: 'demo-bold-market',
+      title: BOLD_SERVICES.marketIntelligencePro.name,
+      url: BOLD_SERVICES.marketIntelligencePro.checkoutUrl,
+      price: formatCOP(BOLD_SERVICES.marketIntelligencePro.amountCOP),
+      icon: 'chart',
+      highlight: false,
     },
     {
       id: 'demo-1',
@@ -71,12 +81,20 @@ export const TUNNELVISION_BIO_PROFILE: BioProfile = {
   isVerifiedSecurity: true,
   links: [
     {
-      id: 'tv-bold',
-      title: 'Auditoría DNS & Blindaje de Correo (DeliverabilityGuard)',
-      url: 'https://checkout.bold.co/payment/LNK_33UADDKUTL',
-      price: '$150.000 COP',
+      id: 'tv-bold-dns',
+      title: BOLD_SERVICES.dnsBlindaje.name,
+      url: BOLD_SERVICES.dnsBlindaje.checkoutUrl,
+      price: formatCOP(BOLD_SERVICES.dnsBlindaje.amountCOP),
       icon: 'shield',
       highlight: true,
+    },
+    {
+      id: 'tv-bold-market',
+      title: BOLD_SERVICES.marketIntelligencePro.name,
+      url: BOLD_SERVICES.marketIntelligencePro.checkoutUrl,
+      price: formatCOP(BOLD_SERVICES.marketIntelligencePro.amountCOP),
+      icon: 'chart',
+      highlight: false,
     },
     {
       id: 'tv-1',

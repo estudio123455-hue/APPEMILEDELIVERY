@@ -1,8 +1,12 @@
+import { BOLD_SERVICES, formatCOP } from '@/config/payments';
+
+export { BOLD_SERVICES, formatCOP };
+
 export type CurrencyCode = 'USD' | 'COP' | 'EUR' | 'MXN';
 
-export const BOLD_OFFICIAL_PAYMENT_LINK = 'https://checkout.bold.co/payment/LNK_33UADDKUTL';
-export const BOLD_OFFICIAL_SERVICE_NAME = 'Auditoría DNS & Blindaje de Correo (DeliverabilityGuard)';
-export const BOLD_OFFICIAL_AMOUNT_COP = 150000;
+export const BOLD_OFFICIAL_PAYMENT_LINK = BOLD_SERVICES.dnsBlindaje.checkoutUrl;
+export const BOLD_OFFICIAL_SERVICE_NAME = BOLD_SERVICES.dnsBlindaje.name;
+export const BOLD_OFFICIAL_AMOUNT_COP = BOLD_SERVICES.dnsBlindaje.amountCOP;
 
 export interface InvoiceItem {
   id: string;

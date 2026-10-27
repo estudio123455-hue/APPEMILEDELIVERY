@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { DomainAuditReport, ProviderFingerprint } from '@/lib/dns/types';
+import { BOLD_SERVICES } from '@/config/payments';
 
 export interface DnsFixAssistantProps {
   domain: string;
@@ -393,7 +394,7 @@ export default function DnsFixAssistant({
             </div>
           </div>
           <a
-            href="https://checkout.bold.co/payment/LNK_33UADDKUTL"
+            href={BOLD_SERVICES.dnsBlindaje.checkoutUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 shrink-0"

@@ -3,6 +3,7 @@
 import React from 'react';
 import {
   Printer,
+  ExternalLink,
   FileText,
   CheckCircle2,
   TrendingUp,
@@ -20,6 +21,7 @@ import {
   Search,
 } from 'lucide-react';
 import type { MarketReportData } from '@/types/market-report';
+import { BOLD_SERVICES, formatCOP } from '@/config/payments';
 
 interface PrintableMarketReportProps {
   report: MarketReportData;
@@ -73,6 +75,17 @@ export default function PrintableMarketReport({ report, onClose }: PrintableMark
             <Printer className="w-4 h-4" />
             <span>Imprimir / Guardar Trabajo Completo en PDF</span>
           </button>
+
+          <a
+            href={BOLD_SERVICES.marketIntelligencePro.checkoutUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
+            title="Activar Pase Pro Oficial en Bold ($49.000 COP)"
+          >
+            <span>Pase Pro ({formatCOP(BOLD_SERVICES.marketIntelligencePro.amountCOP)})</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
 
           {onClose && (
             <button

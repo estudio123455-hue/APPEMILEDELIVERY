@@ -13,6 +13,7 @@ import InboxPlacementSimulator from '@/components/audit/InboxPlacementSimulator'
 import MiPortalSuiteShowcase from '@/components/home/MiPortalSuiteShowcase';
 import Navbar from '@/components/navigation/Navbar';
 import Footer from '@/components/Footer';
+import { BOLD_SERVICES } from '@/config/payments';
 import {
   FileDown,
   Sparkles,
@@ -851,7 +852,7 @@ export default function Home() {
                     </div>
                     <div className="shrink-0 w-full md:w-auto relative z-10 flex flex-col items-center md:items-end gap-1.5">
                       <a
-                        href="https://checkout.bold.co/payment/LNK_33UADDKUTL"
+                        href={BOLD_SERVICES.dnsBlindaje.checkoutUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-full md:w-auto px-6 py-3.5 rounded-xl text-sm font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-500/25 hover:shadow-emerald-500/40 active:scale-95 cursor-pointer group"
@@ -1361,7 +1362,7 @@ export default function Home() {
                           </div>
                         </div>
                         <a
-                          href="https://checkout.bold.co/payment/LNK_33UADDKUTL"
+                          href={BOLD_SERVICES.dnsBlindaje.checkoutUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 shrink-0"
