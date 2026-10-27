@@ -1,6 +1,6 @@
 /**
  * Motor de Detección de Palabras Gatillo de Spam y Cálculo de Entregabilidad
- * Soporta análisis bilingüe (Español e Inglés) y verificación de buenas prácticas RFC.
+ * Soporta análisis bilingüe (Español e Inglés), límites Unicode y verificación RFC.
  */
 
 export interface SpamTriggerMatch {
@@ -32,57 +32,259 @@ interface SpamRule {
   replacement: string;
 }
 
-const SPAM_RULES: SpamRule[] = [
-  // Urgencia y Presión
-  { pattern: /\burgente\b/gi, category: 'urgency', severity: 'high', replacement: 'prioritario / de tu interés' },
-  { pattern: /\bact[uú]a ya\b/gi, category: 'urgency', severity: 'high', replacement: 'cuando puedas revisarlo' },
-  { pattern: /\b[uú]ltima oportunidad\b/gi, category: 'urgency', severity: 'high', replacement: 'recordatorio final' },
-  { pattern: /\btiempo limitado\b/gi, category: 'urgency', severity: 'medium', replacement: 'disponible hasta [fecha]' },
-  { pattern: /\bhazlo ahora\b/gi, category: 'urgency', severity: 'medium', replacement: 'puedes gestionarlo aquí' },
-  { pattern: /\burgent\b/gi, category: 'urgency', severity: 'high', replacement: 'priority / time-sensitive' },
-  { pattern: /\bact now\b/gi, category: 'urgency', severity: 'high', replacement: 'review when convenient' },
-  { pattern: /\blast chance\b/gi, category: 'urgency', severity: 'high', replacement: 'final reminder' },
-  { pattern: /\blimited time\b/gi, category: 'urgency', severity: 'medium', replacement: 'valid until [date]' },
+/**
+ * Crea un RegExp con límites de palabra conscientes de Unicode (soporta acentos y eñes).
+ */
+function createUnicodePattern(patternStr: string): RegExp {
+  return new RegExp(`(?<![\\p{L}\\p{N}])${patternStr}(?![\\p{L}\\p{N}])`, 'giu');
+}
 
-  // Financiero y Dinero
-  { pattern: /\bgratis\b/gi, category: 'financial', severity: 'high', replacement: 'sin costo adicional / de cortesía' },
-  { pattern: /\b100%\s*gratis\b/gi, category: 'financial', severity: 'high', replacement: 'incluido sin costo' },
-  { pattern: /\bgana dinero\b/gi, category: 'financial', severity: 'high', replacement: 'mejora tus ingresos' },
-  { pattern: /\bdinero f[aá]cil\b/gi, category: 'financial', severity: 'high', replacement: 'optimización de presupuesto' },
-  { pattern: /\bingresos extra\b/gi, category: 'financial', severity: 'medium', replacement: 'nuevas oportunidades de negocio' },
-  { pattern: /\bmillonario\b/gi, category: 'financial', severity: 'high', replacement: 'crecimiento financiero' },
-  { pattern: /\bpremio\b/gi, category: 'financial', severity: 'high', replacement: 'reconocimiento especial' },
-  { pattern: /\bloter[ií]a\b/gi, category: 'financial', severity: 'high', replacement: 'beneficio' },
-  { pattern: /\bfree\b/gi, category: 'financial', severity: 'high', replacement: 'complimentary / at no extra charge' },
-  { pattern: /\bmake money\b/gi, category: 'financial', severity: 'high', replacement: 'increase revenue' },
-  { pattern: /\beasy cash\b/gi, category: 'financial', severity: 'high', replacement: 'commercial growth' },
-  { pattern: /\bcash prize\b/gi, category: 'financial', severity: 'high', replacement: 'reward' },
+export const SPAM_RULES: SpamRule[] = [
+  // 1. Urgencia y Presión
+  {
+    pattern: createUnicodePattern('urgente|urgentes'),
+    category: 'urgency',
+    severity: 'high',
+    replacement: 'prioritario / de tu interés',
+  },
+  {
+    pattern: createUnicodePattern('act[uú]a\\s+ya'),
+    category: 'urgency',
+    severity: 'high',
+    replacement: 'cuando puedas revisarlo',
+  },
+  {
+    pattern: createUnicodePattern('[uú]ltima\\s+oportunidad'),
+    category: 'urgency',
+    severity: 'high',
+    replacement: 'recordatorio final',
+  },
+  {
+    pattern: createUnicodePattern('tiempo\\s+limitado'),
+    category: 'urgency',
+    severity: 'medium',
+    replacement: 'disponible hasta [fecha]',
+  },
+  {
+    pattern: createUnicodePattern('hazlo\\s+ahora'),
+    category: 'urgency',
+    severity: 'medium',
+    replacement: 'puedes gestionarlo aquí',
+  },
+  {
+    pattern: createUnicodePattern('urgent|urgently'),
+    category: 'urgency',
+    severity: 'high',
+    replacement: 'priority / time-sensitive',
+  },
+  {
+    pattern: createUnicodePattern('act\\s+now'),
+    category: 'urgency',
+    severity: 'high',
+    replacement: 'review when convenient',
+  },
+  {
+    pattern: createUnicodePattern('last\\s+chance'),
+    category: 'urgency',
+    severity: 'high',
+    replacement: 'final reminder',
+  },
+  {
+    pattern: createUnicodePattern('limited\\s+time'),
+    category: 'urgency',
+    severity: 'medium',
+    replacement: 'valid until [date]',
+  },
 
-  // Promesas y Garantías Excesivas
-  { pattern: /\b100%\s*garantizado\b/gi, category: 'guarantee', severity: 'high', replacement: 'respaldado con garantía' },
-  { pattern: /\bsin riesgo\b/gi, category: 'guarantee', severity: 'medium', replacement: 'con respaldo seguro' },
-  { pattern: /\bsatisfacci[oó]n garantizada\b/gi, category: 'guarantee', severity: 'medium', replacement: 'compromiso de calidad' },
-  { pattern: /\bmilagroso\b/gi, category: 'guarantee', severity: 'high', replacement: 'efectivo' },
-  { pattern: /\b100%\s*guaranteed\b/gi, category: 'guarantee', severity: 'high', replacement: 'backed by policy' },
-  { pattern: /\brisk[\s-]free\b/gi, category: 'guarantee', severity: 'medium', replacement: 'secure agreement' },
+  // 2. Financiero y Dinero
+  {
+    pattern: createUnicodePattern('(?:100%\\s*)?gratis|totalmente\\s+gratis'),
+    category: 'financial',
+    severity: 'high',
+    replacement: 'sin costo adicional / de cortesía',
+  },
+  {
+    pattern: createUnicodePattern('sin\\s+cost[oe](?:\\s+alguno)?|costo\\s+cero'),
+    category: 'financial',
+    severity: 'high',
+    replacement: 'incluido en tu plan / de cortesía',
+  },
+  {
+    pattern: createUnicodePattern('gana\\s+dinero'),
+    category: 'financial',
+    severity: 'high',
+    replacement: 'mejora tus ingresos',
+  },
+  {
+    pattern: createUnicodePattern('dinero\\s+f[aá]cil'),
+    category: 'financial',
+    severity: 'high',
+    replacement: 'optimización de presupuesto',
+  },
+  {
+    pattern: createUnicodePattern('(?:dinero|ingresos?)\\s+extras?'),
+    category: 'financial',
+    severity: 'high',
+    replacement: 'nuevas oportunidades comerciales',
+  },
+  {
+    pattern: createUnicodePattern('millonario|millonaria'),
+    category: 'financial',
+    severity: 'high',
+    replacement: 'crecimiento financiero',
+  },
+  {
+    pattern: createUnicodePattern('premio|premios|recompensa\\s+en\\s+efectivo'),
+    category: 'financial',
+    severity: 'high',
+    replacement: 'reconocimiento especial',
+  },
+  {
+    pattern: createUnicodePattern('loter[ií]a|sorteo\\s+exclusivo'),
+    category: 'financial',
+    severity: 'high',
+    replacement: 'beneficio exclusivo',
+  },
+  {
+    pattern: createUnicodePattern('(?:100%\\s*)?free|completely\\s+free'),
+    category: 'financial',
+    severity: 'high',
+    replacement: 'complimentary / at no extra charge',
+  },
+  {
+    pattern: createUnicodePattern('make\\s+money|earn\\s+cash'),
+    category: 'financial',
+    severity: 'high',
+    replacement: 'increase revenue',
+  },
+  {
+    pattern: createUnicodePattern('easy\\s+cash|extra\\s+income'),
+    category: 'financial',
+    severity: 'high',
+    replacement: 'commercial growth',
+  },
+  {
+    pattern: createUnicodePattern('cash\\s+prize'),
+    category: 'financial',
+    severity: 'high',
+    replacement: 'reward',
+  },
 
-  // Llamados a la Acción Agresivos (CTA)
-  { pattern: /\bhaz clic aqu[ií]\b/gi, category: 'cta', severity: 'high', replacement: 'conoce más en el portal / revisa el informe' },
-  { pattern: /\bclick here\b/gi, category: 'cta', severity: 'high', replacement: 'view the report / access here' },
-  { pattern: /\bcompra ya\b/gi, category: 'cta', severity: 'medium', replacement: 'disponible para adquirir' },
-  { pattern: /\bbuy now\b/gi, category: 'cta', severity: 'medium', replacement: 'place your order' },
-  { pattern: /\bno lo borres\b/gi, category: 'cta', severity: 'high', replacement: 'información de archivo' },
-  { pattern: /\bdon't delete\b/gi, category: 'cta', severity: 'high', replacement: 'important record' },
+  // 3. Promesas y Garantías Excesivas
+  {
+    pattern: createUnicodePattern('(?:100%\\s*)?garantizad[oa]s?|garant[ií]a\\s+(?:total|de\\s+por\\s+vida)'),
+    category: 'guarantee',
+    severity: 'high',
+    replacement: 'respaldado con garantía / verificado',
+  },
+  {
+    pattern: createUnicodePattern('sin\\s+riesgo'),
+    category: 'guarantee',
+    severity: 'medium',
+    replacement: 'con respaldo seguro',
+  },
+  {
+    pattern: createUnicodePattern('satisfacci[oó]n\\s+garantizada'),
+    category: 'guarantee',
+    severity: 'medium',
+    replacement: 'compromiso de calidad',
+  },
+  {
+    pattern: createUnicodePattern('milagros[oa]s?'),
+    category: 'guarantee',
+    severity: 'high',
+    replacement: 'efectivo / comprobado',
+  },
+  {
+    pattern: createUnicodePattern('(?:100%\\s*)?guaranteed|lifetime\\s+guarantee'),
+    category: 'guarantee',
+    severity: 'high',
+    replacement: 'backed by policy',
+  },
+  {
+    pattern: createUnicodePattern('risk[\\s-]free'),
+    category: 'guarantee',
+    severity: 'medium',
+    replacement: 'secure agreement',
+  },
 
-  // Patrones Phishing / Riesgo Crítico
-  { pattern: /\bconfirma tu cuenta\b/gi, category: 'phishing', severity: 'high', replacement: 'gestiona tus credenciales' },
-  { pattern: /\bactualiza tus datos bancarios\b/gi, category: 'phishing', severity: 'high', replacement: 'revisa tu perfil de facturación' },
-  { pattern: /\bverify your account\b/gi, category: 'phishing', severity: 'high', replacement: 'security check' },
-  { pattern: /\bupdate billing info\b/gi, category: 'phishing', severity: 'high', replacement: 'review your billing portal' },
+  // 4. Llamados a la Acción Agresivos (CTA)
+  {
+    pattern: createUnicodePattern('(?:haz\\s+)?(?:clic|click)\\s+aqu[ií]'),
+    category: 'cta',
+    severity: 'high',
+    replacement: 'conoce más en el portal / revisa el informe',
+  },
+  {
+    pattern: createUnicodePattern('click\\s+here'),
+    category: 'cta',
+    severity: 'high',
+    replacement: 'view the report / access here',
+  },
+  {
+    pattern: createUnicodePattern('compra\\s+ya|ordena\\s+ya'),
+    category: 'cta',
+    severity: 'medium',
+    replacement: 'disponible para adquirir',
+  },
+  {
+    pattern: createUnicodePattern('buy\\s+now|order\\s+now'),
+    category: 'cta',
+    severity: 'medium',
+    replacement: 'place your order',
+  },
+  {
+    pattern: createUnicodePattern('no\\s+lo\\s+borres'),
+    category: 'cta',
+    severity: 'high',
+    replacement: 'información de archivo',
+  },
+  {
+    pattern: createUnicodePattern("don't\\s+delete"),
+    category: 'cta',
+    severity: 'high',
+    replacement: 'important record',
+  },
+
+  // 5. Patrones Phishing / Riesgo Crítico
+  {
+    pattern: createUnicodePattern('confirma\\s+tu\\s+cuenta'),
+    category: 'phishing',
+    severity: 'high',
+    replacement: 'gestiona tus credenciales',
+  },
+  {
+    pattern: createUnicodePattern('actualiza\\s+tus\\s+datos\\s+bancarios'),
+    category: 'phishing',
+    severity: 'high',
+    replacement: 'revisa tu perfil de facturación',
+  },
+  {
+    pattern: createUnicodePattern('verify\\s+your\\s+account'),
+    category: 'phishing',
+    severity: 'high',
+    replacement: 'security check',
+  },
+  {
+    pattern: createUnicodePattern('update\\s+billing\\s+info'),
+    category: 'phishing',
+    severity: 'high',
+    replacement: 'review your billing portal',
+  },
 ];
 
 /**
- * Analiza el asunto y el cuerpo del correo en busca de señales de spam.
+ * Reemplaza de forma segura una palabra o frase gatillo respetando límites de palabras Unicode.
+ */
+export function replaceSpamWord(text: string, word: string, replacement: string): string {
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'giu');
+  return text.replace(regex, replacement);
+}
+
+/**
+ * Analiza el asunto y el cuerpo del correo en busca de señales de spam y retorna
+ * métricas detalladas, score de 0 a 100 y lista de palabras encontradas.
  */
 export function analyzeEmailSpam({
   subject,
@@ -104,11 +306,13 @@ export function analyzeEmailSpam({
 
   if (subjectLen > 0 && subjectLen < 15) {
     score -= 8;
-    subjectCharWarning = 'Asunto muy corto. Los asuntos menores a 15 caracteres carecen de contexto y tienen menor tasa de apertura.';
+    subjectCharWarning =
+      'Asunto muy corto (<15 caracteres). Los filtros bayesianos reducen la relevancia al carecer de contexto.';
     recommendations.push('Amplía tu asunto a entre 35 y 50 caracteres para dar contexto profesional.');
   } else if (subjectLen > 65) {
     score -= 10;
-    subjectCharWarning = 'Asunto excesivamente largo (>65 caracteres). En celulares se cortará después de ~35 caracteres.';
+    subjectCharWarning =
+      'Asunto excesivamente largo (>65 caracteres). En celulares se cortará después de ~35 caracteres.';
     recommendations.push('Reduce el asunto a menos de 55 caracteres para que sea legible en pantallas de smartphones.');
   }
 
@@ -122,11 +326,11 @@ export function analyzeEmailSpam({
     const penalty = Math.min(capsWords.length * 6, 20);
     score -= penalty;
     recommendations.push(
-      `Evita palabras en MAYÚSCULAS sostenidas en el asunto (${capsWords.slice(0, 3).join(', ')}). Los filtros bayesianos de Gmail lo consideran un grito comercial.`
+      `Evita palabras en MAYÚSCULAS sostenidas en el asunto (${capsWords.slice(0, 3).join(', ')}). Los filtros de Gmail y Outlook lo consideran un grito comercial.`
     );
   }
 
-  // 3. Puntuación excesiva (!!! o ???)
+  // 3. Puntuación excesiva (!! o ??)
   const exclamationMatches = (normSubject + ' ' + normBody).match(/!{2,}/g) || [];
   const questionMatches = (normSubject + ' ' + normBody).match(/\?{2,}/g) || [];
   const exclamationCount = (normSubject.match(/!/g) || []).length;
@@ -134,7 +338,9 @@ export function analyzeEmailSpam({
 
   if (exclamationMatches.length > 0 || exclamationCount > 2) {
     score -= 12;
-    recommendations.push('Elimina los signos de exclamación múltiples ("!!"). Provocan penalización directa en SpamAssassin y Microsoft SmartScreen.');
+    recommendations.push(
+      'Elimina los signos de exclamación múltiples ("!!"). Provocan penalización directa en SpamAssassin y Microsoft SmartScreen.'
+    );
   }
   if (questionMatches.length > 0) {
     score -= 6;
@@ -146,16 +352,18 @@ export function analyzeEmailSpam({
   const emojisFound = Array.from(normSubject).filter((char) => emojiRegex.test(char));
   if (emojisFound.length > 2) {
     score -= 8;
-    recommendations.push(`Detectamos ${emojisFound.length} emojis en el asunto. Usar más de 1 emoji reduce la credibilidad en correos B2B.`);
+    recommendations.push(
+      `Detectamos ${emojisFound.length} emojis en el asunto. Usar más de 1 emoji reduce la credibilidad en correos B2B.`
+    );
   }
 
-  // 5. Palabras Gatillo (Spam Triggers)
+  // 5. Palabras Gatillo (Spam Triggers con soporte Unicode)
   for (const rule of SPAM_RULES) {
-    const subjectMatches = normSubject.match(rule.pattern);
-    const bodyMatches = normBody.match(rule.pattern);
+    const subjectMatches = [...normSubject.matchAll(rule.pattern)].map((m) => m[0]);
+    const bodyMatches = [...normBody.matchAll(rule.pattern)].map((m) => m[0]);
 
-    const countInSubject = subjectMatches ? subjectMatches.length : 0;
-    const countInBody = bodyMatches ? bodyMatches.length : 0;
+    const countInSubject = subjectMatches.length;
+    const countInBody = bodyMatches.length;
     const totalCount = countInSubject + countInBody;
 
     if (totalCount > 0) {
@@ -174,17 +382,21 @@ export function analyzeEmailSpam({
       }
       score -= deduction;
 
-      const matchedText = subjectMatches?.[0] || bodyMatches?.[0] || '';
-      const key = matchedText.toLowerCase();
-
-      triggersMap.set(key, {
-        word: matchedText,
-        category: rule.category,
-        severity: rule.severity,
-        replacement: rule.replacement,
-        foundIn,
-        count: totalCount,
-      });
+      // Extraer coincidencias únicas
+      const allMatchedTexts = Array.from(new Set([...subjectMatches, ...bodyMatches]));
+      for (const matchedText of allMatchedTexts) {
+        const key = matchedText.toLowerCase();
+        if (!triggersMap.has(key)) {
+          triggersMap.set(key, {
+            word: matchedText,
+            category: rule.category,
+            severity: rule.severity,
+            replacement: rule.replacement,
+            foundIn,
+            count: totalCount,
+          });
+        }
+      }
     }
   }
 

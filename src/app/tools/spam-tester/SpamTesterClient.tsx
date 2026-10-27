@@ -20,7 +20,7 @@ import {
   CornerDownRight,
 } from 'lucide-react';
 import Navbar from '@/components/navigation/Navbar';
-import { analyzeEmailSpam, type SpamTriggerMatch } from '@/lib/spam-tester/engine';
+import { analyzeEmailSpam, replaceSpamWord, type SpamTriggerMatch } from '@/lib/spam-tester/engine';
 
 type ClientView = 'gmail-desktop' | 'gmail-mobile' | 'outlook-desktop' | 'outlook-mobile';
 
@@ -84,10 +84,21 @@ export default function SpamTesterClient() {
   };
 
   const handleApplyReplacement = (trigger: SpamTriggerMatch) => {
-    const regex = new RegExp(`\\b${trigger.word}\\b`, 'gi');
     const firstOption = trigger.replacement.split('/')[0].trim();
-    setSubject((prev) => prev.replace(regex, firstOption));
-    setBodyText((prev) => prev.replace(regex, firstOption));
+    setSubject((prev) => replaceSpamWord(prev, trigger.word, firstOption));
+    setBodyText((prev) => replaceSpamWord(prev, trigger.word, firstOption));
+  };
+
+  const handleApplyAllReplacements = () => {
+    let newSubject = subject;
+    let newBody = bodyText;
+    for (const trigger of analysis.triggers) {
+      const firstOption = trigger.replacement.split('/')[0].trim();
+      newSubject = replaceSpamWord(newSubject, trigger.word, firstOption);
+      newBody = replaceSpamWord(newBody, trigger.word, firstOption);
+    }
+    setSubject(newSubject);
+    setBodyText(newBody);
   };
 
   // Preview snippet derivation
@@ -254,9 +265,20 @@ export default function SpamTesterClient() {
                     Palabras Gatillo Identificadas ({analysis.triggers.length})
                   </span>
                 </h3>
-                <span className="text-xs text-slate-400">
-                  Filtros Bayesianos & SpamAssassin
-                </span>
+                <div className="flex items-center gap-2">
+                  {analysis.triggers.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={handleApplyAllReplacements}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold transition"
+                    >
+                      Reemplazar todos ({analysis.triggers.length})
+                    </button>
+                  )}
+                  <span className="text-xs text-slate-400 hidden sm:inline">
+                    Filtros Bayesianos & RFC
+                  </span>
+                </div>
               </div>
 
               {analysis.triggers.length === 0 ? (
