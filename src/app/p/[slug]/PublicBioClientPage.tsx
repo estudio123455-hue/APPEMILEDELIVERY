@@ -9,11 +9,12 @@ import BioProfileCard from '@/components/sites/BioProfileCard';
 
 interface PublicBioClientPageProps {
   slug: string;
+  initialProfile?: BioProfile;
 }
 
-export default function PublicBioClientPage({ slug }: PublicBioClientPageProps) {
-  // Inicialización síncrona inmediata desde localStorage / fallback para 0 latency
-  const [profile, setProfile] = useState<BioProfile>(() => getBioProfileSync(slug));
+export default function PublicBioClientPage({ slug, initialProfile }: PublicBioClientPageProps) {
+  // Inicialización inmediata con perfil de servidor si existe, o síncrona desde localStorage
+  const [profile, setProfile] = useState<BioProfile>(() => initialProfile || getBioProfileSync(slug));
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {

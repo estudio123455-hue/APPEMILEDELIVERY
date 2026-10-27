@@ -51,18 +51,20 @@ export async function saveBioProfile(profile: BioProfile): Promise<{ success: bo
     } = await supabase.auth.getUser();
 
     if (user) {
-      // Intentamos upsert en tabla bio_profiles si existe en Supabase
+      // Persistencia en tabla bio_profiles de Supabase
       const { error: upsertError } = await (supabase as any)
         .from('bio_profiles')
         .upsert(
           {
             user_id: user.id,
             slug: cleanSlug,
+            title: profileToSave.displayName,
             display_name: profileToSave.displayName,
             bio: profileToSave.bio,
             avatar_url: profileToSave.avatarUrl,
             theme: profileToSave.theme,
             links: profileToSave.links,
+            is_published: true,
             is_verified_security: profileToSave.isVerifiedSecurity,
             updated_at: new Date().toISOString(),
           },
