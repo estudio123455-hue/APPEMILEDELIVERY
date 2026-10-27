@@ -269,7 +269,9 @@ export default function SiteBuilderPage() {
               <h1 className="text-sm sm:text-base font-black text-white tracking-tight flex items-center gap-2">
                 <span>{profile.displayName || 'Mi Perfil Comercial'}</span>
                 {profile.isVerifiedSecurity && (
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" title="Verificado DeliverabilityGuard" />
+                  <span title="Verificado DeliverabilityGuard">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  </span>
                 )}
               </h1>
             </div>
