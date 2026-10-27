@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Search,
@@ -35,6 +35,16 @@ import type { User } from '@supabase/supabase-js';
 import MarketPaywall from '@/components/paywall/MarketPaywall';
 import { BOLD_SERVICES, formatCOP } from '@/config/payments';
 import AnswerThePublicWheel, { type WheelType } from '@/components/tools/AnswerThePublicWheel';
+
+
+export interface UserUsageRow {
+  user_id: string;
+  is_pro: boolean;
+  dns_shield_active?: boolean;
+  searches_count?: number;
+  market_searches_today?: number;
+  last_search_date: string;
+}
 
 const CATEGORY_CONFIG: Record<
   keyof AskPublicCategories,
@@ -80,7 +90,7 @@ export default function AskThePublicClient() {
 
         if (user) {
           // Consultar tabla user_usage en Supabase
-          const { data: usageData } = await supabase
+          const { data: usageData } = await (supabase as any)
             .from('user_usage')
             .select('*')
             .eq('user_id', user.id)
@@ -186,7 +196,7 @@ export default function AskThePublicClient() {
         }
 
         if (user) {
-          supabase
+          (supabase as any)
             .from('user_usage')
             .upsert({
               user_id: user.id,
