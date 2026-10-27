@@ -30,7 +30,7 @@ export const DEMO_BIO_PROFILE: BioProfile = {
     {
       id: 'demo-1',
       title: 'Auditoría Integral de Entregabilidad DNS',
-      url: 'https://miportal.me/#quick-audit',
+      url: '/#quick-audit',
       price: '$150 USD',
       icon: 'shield',
       highlight: true,
@@ -38,7 +38,7 @@ export const DEMO_BIO_PROFILE: BioProfile = {
     {
       id: 'demo-2',
       title: 'Consultoría de Inteligencia de Mercado',
-      url: 'https://miportal.me/tools/ask-the-public',
+      url: '/tools/ask-the-public',
       price: '$280 USD',
       icon: 'chart',
       highlight: false,
@@ -46,7 +46,7 @@ export const DEMO_BIO_PROFILE: BioProfile = {
     {
       id: 'demo-3',
       title: 'Diseño y Setup de Bio Site Comercial',
-      url: 'https://miportal.me/sites/builder',
+      url: '/sites/builder',
       price: '$320 USD',
       icon: 'sparkles',
       highlight: false,

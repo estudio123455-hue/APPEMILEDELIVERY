@@ -15,12 +15,16 @@ export default function Footer({ onSelectAuditAction }: FooterProps) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Info */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold">
+            <Link
+              href="/"
+              className="flex items-center gap-2.5 group transition-opacity hover:opacity-90 cursor-pointer"
+              title="Volver al inicio de MiPortal Suite"
+            >
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold group-hover:scale-105 transition-transform">
                 <Shield className="w-4 h-4" />
               </div>
               <span className="text-base font-bold text-white tracking-tight">MiPortal Suite</span>
-            </div>
+            </Link>
             <p className="text-xs text-slate-400 leading-relaxed">
               Ecosistema digital todo-en-uno: Inteligencia de mercado con IA, organización de ideas con Mind Canvas,
               generador de Bio Sites, presupuestos ejecutivos y ciberseguridad DNS de entregabilidad.
