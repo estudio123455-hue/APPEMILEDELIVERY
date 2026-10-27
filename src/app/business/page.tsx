@@ -25,6 +25,8 @@ import {
   Edit3,
   ShieldCheck,
   RefreshCw,
+  Mail,
+  Loader2,
 } from 'lucide-react';
 import Navbar from '@/components/navigation/Navbar';
 import InvoicePreview from '@/components/business/InvoicePreview';
@@ -46,6 +48,8 @@ export default function BusinessPage() {
   const [mobileView, setMobileView] = useState<'editor' | 'preview'>('editor');
   const [isCopied, setIsCopied] = useState(false);
   const [importFeedback, setImportFeedback] = useState<string | null>(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailFeedback, setEmailFeedback] = useState<string | null>(null);
 
   // Cargar borrador persistido desde localStorage si existe
   useEffect(() => {
@@ -203,6 +207,51 @@ export default function BusinessPage() {
     }
   };
 
+  // Enviar cotización por email usando Resend API
+  const handleSendEmail = async () => {
+    if (!invoice.client.email || !invoice.client.email.includes('@')) {
+      alert('Por favor ingresa un correo de cliente válido en la pestaña "Emisor & Cliente".');
+      setActiveTab('details');
+      return;
+    }
+
+    const subtotal = invoice.items.reduce((acc, item) => acc + item.total, 0);
+    const taxRate = Math.max(0, invoice.config.taxRate || 0);
+    const grandTotal = Math.round(subtotal + (subtotal * taxRate) / 100);
+
+    setIsSendingEmail(true);
+    setEmailFeedback('Enviando cotización oficial a través de Resend...');
+
+    try {
+      const res = await fetch('/api/business/send-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientEmail: invoice.client.email,
+          clientName: invoice.client.name || invoice.client.company || 'Cliente',
+          quoteTitle:
+            invoice.items[0]?.description
+              ? `${invoice.items[0].description} (${invoice.invoiceNumber || 'Presupuesto'})`
+              : `Servicios Profesionales - ${invoice.invoiceNumber || 'Presupuesto'}`,
+          amountCOP: invoice.config.currency === 'COP' ? grandTotal : grandTotal * 4000,
+          paymentUrl: invoice.config.paymentLink || BOLD_SERVICES.dnsBlindaje.checkoutUrl,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEmailFeedback(`✓ Cotización enviada exitosamente a ${invoice.client.email}`);
+      } else {
+        setEmailFeedback(`Error: ${data.error || data.message || 'No se pudo enviar el correo'}`);
+      }
+    } catch (err: any) {
+      setEmailFeedback(`Error de red: ${err?.message || 'Error inesperado'}`);
+    } finally {
+      setIsSendingEmail(false);
+      setTimeout(() => setEmailFeedback(null), 5000);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
       {/* Navbar principal */}
@@ -295,6 +344,26 @@ export default function BusinessPage() {
 
             <button
               type="button"
+              onClick={handleSendEmail}
+              disabled={isSendingEmail}
+              className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white transition flex items-center gap-1.5 shadow-md shadow-blue-600/20 active:scale-95 cursor-pointer"
+              title="Enviar cotización por correo electrónico con Resend"
+            >
+              {isSendingEmail ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                  <span>Enviando...</span>
+                </>
+              ) : (
+                <>
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Enviar por Correo</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
               onClick={handlePrint}
               className="px-4 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 cursor-pointer"
             >
@@ -303,6 +372,23 @@ export default function BusinessPage() {
             </button>
           </div>
         </div>
+
+        {emailFeedback && (
+          <div
+            className={`max-w-7xl mx-auto mt-2 p-2.5 rounded-lg border text-xs flex items-center gap-2 animate-fadeIn ${
+              emailFeedback.startsWith('✓')
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                : 'bg-blue-500/10 border-blue-500/30 text-blue-300'
+            }`}
+          >
+            {emailFeedback.startsWith('✓') ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            ) : (
+              <Mail className="w-4 h-4 text-blue-400 shrink-0" />
+            )}
+            <span>{emailFeedback}</span>
+          </div>
+        )}
 
         {importFeedback && (
           <div className="max-w-7xl mx-auto mt-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-fadeIn">

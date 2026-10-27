@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { executeDomainAudit } from '@/lib/dns';
 import { getActiveSubscriptions } from '@/lib/db/subscriptions';
+import { sendDomainAlertEmail } from '@/lib/email/resend';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -39,11 +40,25 @@ export async function GET(request: NextRequest) {
       const report = await executeDomainAudit(sub.domain);
       const criticalIssues = report.issues.filter((i) => i.severity === 'CRITICAL');
       const isDegraded = report.score < 70 || criticalIssues.length > 0;
+      let emailResult: { success: boolean; messageId?: string; error?: string } | null = null;
 
       if (isDegraded) {
-        // Dispatched simulated transactional alert
+        const issuesSummary = report.issues
+          .filter((i) => i.severity === 'CRITICAL' || i.severity === 'WARNING')
+          .map((i) => `${i.title}: ${i.description}`);
+
+        emailResult = await sendDomainAlertEmail({
+          to: sub.email,
+          domain: sub.domain,
+          score: report.score,
+          issues:
+            issuesSummary.length > 0
+              ? issuesSummary
+              : ['Puntaje de reputación y salud DNS degradado por debajo de 70/100.'],
+        });
+
         console.warn(
-          `[CRON MONITOR ALERTA] Dominio: ${sub.domain} | Score: ${report.score}/100 | Notificando a: ${sub.email}`
+          `[CRON MONITOR ALERTA] Dominio: ${sub.domain} | Score: ${report.score}/100 | Notificado a: ${sub.email} | EmailId: ${emailResult.messageId || 'N/A'}`
         );
       }
 
@@ -53,6 +68,7 @@ export async function GET(request: NextRequest) {
         score: report.score,
         status: report.status,
         alertTriggered: isDegraded,
+        emailSent: emailResult ? emailResult.success : false,
         criticalCount: criticalIssues.length,
         warningCount: report.summary.warningCount,
       };

@@ -3,6 +3,7 @@ import { stripe, NEXT_PUBLIC_APP_URL } from '@/lib/stripe';
 import { AuditRequestSchema } from '@/lib/validations';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
