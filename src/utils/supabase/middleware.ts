@@ -33,87 +33,83 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // Rutas exentas de redirección obligatoria a setup-2fa
-  const isAuthExemptPath =
-    pathname.startsWith('/setup-2fa') ||
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/register') ||
-    pathname.startsWith('/auth') ||
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/_next') ||
-    pathname.includes('.');
+  // 1. Rutas estrictamente privadas del panel de usuario que requieren autenticación y 2FA/AAL2
+  const isStrictlyPrivateRoute =
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/settings') ||
+    pathname.startsWith('/account');
 
-  // 1. Revalidar usuario autenticado
+  // Ruta de configuración de segundo factor
+  const isSetup2faRoute = pathname.startsWith('/setup-2fa');
+
+  // 2. Si la ruta NO es privada ni de setup-2fa, es 100% PÚBLICA:
+  //    - / (Home)
+  //    - /business (Generador de presupuestos y facturación sin login obligatorio)
+  //    - /sites/* (Constructor de Bio Sites)
+  //    - /p/* (Perfiles públicos y demos)
+  //    - /tools/* (/tools/ask-the-public, /tools/generator, /tools/mind-canvas)
+  //    - /guide
+  //    - /login, /register, /auth/*
+  // NUNCA bloquear ni exigir 2FA/login en rutas públicas.
+  if (!isStrictlyPrivateRoute && !isSetup2faRoute) {
+    return supabaseResponse;
+  }
+
+  // 3. Para rutas privadas o /setup-2fa, obtener el usuario autenticado
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 2. Validación Estricta de AAL2 y Factor de Autenticación
-  if (user) {
-    const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    const currentLevel = aalData?.currentLevel;
-    const nextLevel = aalData?.nextLevel;
-    const isMfaPending = nextLevel === 'aal2' && currentLevel !== 'aal2';
-
-    // Regla de Bloqueo por Reto MFA Pendiente (Prevención de Bypass)
-    if (isMfaPending) {
-      const isAllowedDuringMfa =
-        pathname.startsWith('/login') ||
-        pathname.startsWith('/auth') ||
-        pathname.startsWith('/api');
-
-      if (!isAllowedDuringMfa) {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = '/login';
-        redirectUrl.searchParams.set('mfa', 'required');
-        const redirectResponse = NextResponse.redirect(redirectUrl);
-
-        // Preservar cookies de sesión para que /login reconozca el reto pendiente
-        request.cookies.getAll().forEach((cookie) => {
-          redirectResponse.cookies.set(cookie.name, cookie.value);
-        });
-        supabaseResponse.cookies.getAll().forEach((cookie) => {
-          redirectResponse.cookies.set(cookie.name, cookie.value);
-        });
-
-        return redirectResponse;
-      }
-    } else {
-      // El usuario está en AAL2 (o no requiere MFA)
-      // Si no es ruta exenta, verificar que tenga 2FA configurado obligatoriamente
-      if (!isAuthExemptPath) {
-        const { data: factors } = await supabase.auth.mfa.listFactors();
-        const hasVerifiedTotp = factors?.totp?.some((f) => f.status === 'verified');
-
-        if (!hasVerifiedTotp) {
-          const redirectUrl = request.nextUrl.clone();
-          redirectUrl.pathname = '/setup-2fa';
-          const redirectResponse = NextResponse.redirect(redirectUrl);
-
-          // Preservar cookies de sesión en la redirección
-          request.cookies.getAll().forEach((cookie) => {
-            redirectResponse.cookies.set(cookie.name, cookie.value);
-          });
-          supabaseResponse.cookies.getAll().forEach((cookie) => {
-            redirectResponse.cookies.set(cookie.name, cookie.value);
-          });
-
-          return redirectResponse;
-        }
-      }
-    }
-  }
-
-  // 3. Proteger rutas estrictamente privadas si no hay usuario autenticado
-  const isStrictlyPrivateRoute =
-    pathname.startsWith('/settings') ||
-    pathname.startsWith('/dashboard') ||
-    pathname.startsWith('/setup-2fa');
-
-  if (!user && isStrictlyPrivateRoute) {
+  // Si no hay sesión y trata de acceder a rutas privadas -> Redirigir a /login
+  if (!user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
     return NextResponse.redirect(loginUrl);
+  }
+
+  // 4. Para usuarios en rutas privadas, validar estricto AAL2 (Prevención de Bypass MFA)
+  const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  const currentLevel = aalData?.currentLevel;
+  const nextLevel = aalData?.nextLevel;
+  const isMfaPending = nextLevel === 'aal2' && currentLevel !== 'aal2';
+
+  // Si tiene TOTP configurado pero la sesión solo está en AAL1 -> Forzar /login?mfa=required
+  if (isMfaPending) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = '/login';
+    redirectUrl.searchParams.set('mfa', 'required');
+    const redirectResponse = NextResponse.redirect(redirectUrl);
+
+    // Preservar cookies de sesión en la redirección
+    request.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value);
+    });
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value);
+    });
+
+    return redirectResponse;
+  }
+
+  // 5. Si está en ruta privada pero no tiene 2FA configurado -> Redirigir a /setup-2fa
+  if (isStrictlyPrivateRoute) {
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const hasVerifiedTotp = factors?.totp?.some((f) => f.status === 'verified');
+
+    if (!hasVerifiedTotp) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = '/setup-2fa';
+      const redirectResponse = NextResponse.redirect(redirectUrl);
+
+      request.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value);
+      });
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value);
+      });
+
+      return redirectResponse;
+    }
   }
 
   return supabaseResponse;
