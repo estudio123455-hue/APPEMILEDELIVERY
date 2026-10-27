@@ -3,39 +3,40 @@ import './globals.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://deliverabilityguard.miportal.me'),
-  title: 'DeliverabilityGuard | Auditoría DNS y Protección de Entregabilidad de Correo',
+  title: 'MiPortal Suite — Inteligencia de Mercado, Bio Sites y Seguridad Digital',
   description:
-    'Diagnostica y soluciona problemas de entregabilidad de correo. Asistente en 1 clic para configurar registros SPF, DKIM y DMARC y evitar que tus correos caigan en spam o sufran suplantación de identidad.',
+    'Investiga tu mercado y competencia con IA, crea tu presencia comercial con Bio Sites en minutos y protege la reputación de tu dominio para que tus correos nunca caigan a spam.',
   keywords: [
+    'MiPortal Suite',
+    'inteligencia de mercado',
+    'bio sites',
     'entregabilidad de correo',
-    'evitar spam',
+    'auditoría DNS',
+    'escucha de mercado',
     'configurar DMARC',
     'registro SPF',
-    'auditoría DNS',
-    'seguridad de correo electrónico',
-    'Google Workspace SPF',
-    'Squarespace DNS',
+    'Squarespace Bio Sites',
   ],
-  authors: [{ name: 'DeliverabilityGuard Team', url: 'https://deliverabilityguard.miportal.me' }],
-  creator: 'DeliverabilityGuard',
-  publisher: 'DeliverabilityGuard',
+  authors: [{ name: 'MiPortal Team', url: 'https://deliverabilityguard.miportal.me' }],
+  creator: 'MiPortal',
+  publisher: 'MiPortal',
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'DeliverabilityGuard | Auditoría DNS y Protección de Entregabilidad de Correo',
+    title: 'MiPortal Suite — Inteligencia de Mercado, Bio Sites y Seguridad Digital',
     description:
-      'Diagnostica y soluciona problemas de entregabilidad de correo. Asistente en 1 clic para configurar registros SPF, DKIM y DMARC y evitar que tus correos caigan en spam o sufran suplantación de identidad.',
+      'Investiga tu mercado y competencia con IA, crea tu presencia comercial con Bio Sites en minutos y protege la reputación de tu dominio para que tus correos nunca caigan a spam.',
     url: 'https://deliverabilityguard.miportal.me',
-    siteName: 'DeliverabilityGuard',
+    siteName: 'MiPortal Suite',
     locale: 'es_CO',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DeliverabilityGuard | Auditoría DNS y Protección de Entregabilidad de Correo',
+    title: 'MiPortal Suite — Inteligencia de Mercado, Bio Sites y Seguridad Digital',
     description:
-      'Diagnostica y soluciona problemas de entregabilidad de correo. Asistente en 1 clic para configurar registros SPF, DKIM y DMARC y evitar que tus correos caigan en spam o sufran suplantación de identidad.',
+      'Investiga tu mercado y competencia con IA, crea tu presencia comercial con Bio Sites en minutos y protege la reputación de tu dominio para que tus correos nunca caigan a spam.',
   },
   robots: {
     index: true,
@@ -53,22 +54,22 @@ export const metadata: Metadata = {
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
-  name: 'DeliverabilityGuard',
+  name: 'MiPortal Suite',
   url: 'https://deliverabilityguard.miportal.me',
-  applicationCategory: 'SecurityApplication',
+  applicationCategory: 'BusinessApplication',
   operatingSystem: 'All',
   description:
-    'Herramienta gratuita de auditoría de registros DNS y asistente de reparación para SPF, DKIM y DMARC.',
+    'Ecosistema integral para creadores y empresas: Inteligencia de mercado con IA, generador de Bio Sites y ciberseguridad DNS.',
   offers: {
     '@type': 'Offer',
     price: '0',
     priceCurrency: 'USD',
   },
   featureList: [
-    'Auditoría DNS en tiempo real sin caché',
-    'Doctor de entregabilidad con traducción en lenguaje humano',
-    'Asistente de reparación DNS en 1 clic',
-    'Centro de monitoreo continuo de dominios',
+    'Inteligencia de Mercado y Escucha Social con IA',
+    'Constructor de Bio Sites con temas editoriales en tiempo real',
+    'Auditoría DNS autoritativa en tiempo real (SPF, DKIM, DMARC, BIMI)',
+    'Simulador de ubicación de bandeja y protección antifraude',
   ],
 };
 
