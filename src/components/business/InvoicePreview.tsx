@@ -12,7 +12,7 @@ import {
   User,
   FileText,
 } from 'lucide-react';
-import { InvoiceData, formatInvoiceCurrency } from './types';
+import { InvoiceData, formatInvoiceCurrency, BOLD_OFFICIAL_PAYMENT_LINK } from './types';
 
 interface InvoicePreviewProps {
   invoice: InvoiceData;
@@ -182,29 +182,35 @@ export default function InvoicePreview({ invoice, isPrintOnly = false }: Invoice
       <div className="py-6 flex flex-col sm:flex-row items-start justify-between gap-6 border-b border-slate-800 print:border-slate-300">
         {/* Enlace de Pago Directo */}
         <div className="w-full sm:w-1/2 space-y-2.5">
-          {config.paymentLink && (
-            <div className="p-4 rounded-2xl bg-slate-950 border border-emerald-500/30 print:border-slate-300 print:bg-slate-50 space-y-2">
-              <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-emerald-400 print:text-emerald-700 flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5" />
-                <span>Pasarela de Pago Directo</span>
-              </span>
-              <p className="text-xs text-slate-300 print:text-slate-700">
-                Paga esta cotización de forma instantánea y segura con tarjeta o transferencia:
-              </p>
-              <a
-                href={config.paymentLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition active:scale-95 shadow-md shadow-emerald-500/20 print:hidden"
-              >
-                <span>Pagar Ahora ({config.paymentGatewayName || 'Pasarela Segura'})</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-              <div className="hidden print:block text-[11px] font-mono text-slate-600 break-all">
-                Enlace de pago: {config.paymentLink}
+          {(() => {
+            const effectivePaymentLink = config.paymentLink?.trim() || BOLD_OFFICIAL_PAYMENT_LINK;
+            const isBold = effectivePaymentLink.includes('bold.co');
+            const gatewayName = config.paymentGatewayName || (isBold ? 'Bold Checkout' : 'Pasarela Segura');
+
+            return (
+              <div className="p-4 rounded-2xl bg-slate-950 border border-emerald-500/30 print:border-slate-300 print:bg-slate-50 space-y-2">
+                <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-emerald-400 print:text-emerald-700 flex items-center gap-1.5">
+                  <CreditCard className="w-3.5 h-3.5" />
+                  <span>Pasarela de Pago Directo ({isBold ? 'Bold Oficial' : 'Online'})</span>
+                </span>
+                <p className="text-xs text-slate-300 print:text-slate-700">
+                  Paga esta cotización de forma instantánea y segura con tarjeta débito, crédito o PSE:
+                </p>
+                <a
+                  href={effectivePaymentLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition active:scale-95 shadow-md shadow-emerald-500/20 print:hidden cursor-pointer"
+                >
+                  <span>Pagar Ahora ({gatewayName})</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <div className="hidden print:block text-[11px] font-mono text-slate-600 break-all">
+                  Enlace de pago: {effectivePaymentLink}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* Totales */}

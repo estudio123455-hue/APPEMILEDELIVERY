@@ -692,23 +692,39 @@ export default function BusinessPage() {
 
               {/* Enlace de Pago Directo */}
               <div className="space-y-3 pt-3 border-t border-slate-800">
-                <label className="text-xs font-semibold text-slate-300 block">
-                  Enlace de Pago Directo (Stripe, Wompi, PayPal, Mercado Pago)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-300 block">
+                    Enlace de Pago Directo (Bold, Wompi, Stripe, PSE)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateConfig('paymentLink', 'https://checkout.bold.co/payment/LNK_33UADDKUTL');
+                      updateConfig('paymentGatewayName', 'Bold Checkout (Oficial)');
+                    }}
+                    className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold underline cursor-pointer"
+                  >
+                    Usar Link Oficial de Bold
+                  </button>
+                </div>
                 <div className="flex rounded-xl overflow-hidden border border-slate-800 bg-slate-950 focus-within:border-cyan-500">
                   <span className="px-3 py-2.5 bg-slate-900 text-xs font-mono text-slate-400 border-r border-slate-800 flex items-center">
                     https://
                   </span>
                   <input
                     type="text"
-                    value={invoice.config.paymentLink || ''}
-                    onChange={(e) => updateConfig('paymentLink', e.target.value)}
-                    placeholder="buy.stripe.com/mi-servicio o checkout.wompi.co/..."
+                    value={invoice.config.paymentLink?.replace(/^https?:\/\//i, '') || ''}
+                    onChange={(e) => {
+                      const val = e.target.value.trim();
+                      const fullUrl = val ? (val.startsWith('http') ? val : `https://${val}`) : '';
+                      updateConfig('paymentLink', fullUrl);
+                    }}
+                    placeholder="checkout.bold.co/payment/LNK_33UADDKUTL"
                     className="flex-1 px-3 py-2.5 bg-transparent text-white text-xs font-mono focus:outline-none"
                   />
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Tu cliente verá un botón interactivo para pagar directamente con tarjeta de crédito desde esta cotización.
+                  Tu cliente verá un botón interactivo para pagar directamente con tarjeta débito, crédito o PSE desde esta cotización. Configurado por defecto con Bold Oficial ($150.000 COP).
                 </p>
               </div>
 

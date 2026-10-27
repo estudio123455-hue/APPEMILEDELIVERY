@@ -1,5 +1,9 @@
 export type CurrencyCode = 'USD' | 'COP' | 'EUR' | 'MXN';
 
+export const BOLD_OFFICIAL_PAYMENT_LINK = 'https://checkout.bold.co/payment/LNK_33UADDKUTL';
+export const BOLD_OFFICIAL_SERVICE_NAME = 'Auditoría DNS & Blindaje de Correo (DeliverabilityGuard)';
+export const BOLD_OFFICIAL_AMOUNT_COP = 150000;
+
 export interface InvoiceItem {
   id: string;
   description: string;
@@ -67,34 +71,34 @@ export const DEFAULT_INVOICE: InvoiceData = {
   items: [
     {
       id: 'srv-1',
-      description: 'Auditoría Integral de Entregabilidad DNS (SPF, DKIM, DMARC, BIMI)',
+      description: 'Auditoría DNS & Blindaje de Correo (DeliverabilityGuard)',
       quantity: 1,
-      unitPrice: 150,
-      total: 150,
+      unitPrice: 150000,
+      total: 150000,
     },
     {
       id: 'srv-2',
       description: 'Consultoría Estratégica de Mercado y Benchmarking Competitivo',
       quantity: 1,
-      unitPrice: 280,
-      total: 280,
+      unitPrice: 280000,
+      total: 280000,
     },
     {
       id: 'srv-3',
       description: 'Setup y Despliegue de Bio Site Comercial con 5 Temas',
       quantity: 1,
-      unitPrice: 320,
-      total: 320,
+      unitPrice: 320000,
+      total: 320000,
     },
   ],
   config: {
-    currency: 'USD',
+    currency: 'COP',
     taxRate: 0,
-    paymentLink: 'https://buy.stripe.com/demo-miportal',
-    paymentGatewayName: 'Stripe Checkout',
+    paymentLink: BOLD_OFFICIAL_PAYMENT_LINK,
+    paymentGatewayName: 'Bold Checkout (Oficial)',
   },
   notes: 'Presupuesto oficial emitido por MiPortal Suite. Todos los servicios incluyen garantía técnica de entregabilidad y validación RFC.',
-  terms: 'Vigencia de esta propuesta comercial: 15 días calendario. Forma de pago: 50% anticipo y 50% contra entrega.',
+  terms: 'Vigencia de esta propuesta comercial: 15 días calendario. Pago 100% seguro a través de Bold con tarjeta débito, crédito o PSE.',
   isVerifiedSecurity: true,
 };
 
