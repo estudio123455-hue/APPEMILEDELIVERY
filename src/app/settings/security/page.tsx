@@ -146,10 +146,10 @@ export default function SecuritySettingsPage() {
                   <p className="text-slate-400">
                     Por motivos de seguridad y auditoría de entregabilidad, el 2FA es obligatorio y no puede ser desactivado por el usuario. Si perdiste acceso a tu app autenticadora o cambiaste de dispositivo, escribe a soporte:{' '}
                     <a
-                      href="mailto:admin@miportal.me"
+                      href="mailto:deliverabilityguard@gmail.com"
                       className="font-mono text-emerald-400 underline hover:text-emerald-300 transition"
                     >
-                      admin@miportal.me
+                      deliverabilityguard@gmail.com
                     </a>
                   </p>
                 </div>

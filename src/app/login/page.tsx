@@ -286,8 +286,8 @@ function LoginForm() {
 
             <div className="p-3 rounded-lg bg-neutral-900/80 border border-neutral-800 text-center text-xs text-neutral-400 leading-relaxed">
               ¿Perdiste acceso a tu app autenticadora? El 2FA es obligatorio. Escribe a{' '}
-              <a href="mailto:admin@miportal.me" className="text-emerald-400 underline hover:text-emerald-300">
-                admin@miportal.me
+              <a href="mailto:deliverabilityguard@gmail.com" className="text-emerald-400 underline hover:text-emerald-300">
+                deliverabilityguard@gmail.com
               </a>{' '}
               para solicitar la revocación administrativa de tu factor.
             </div>

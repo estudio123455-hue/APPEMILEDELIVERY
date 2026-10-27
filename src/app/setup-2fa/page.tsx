@@ -294,8 +294,8 @@ export default function Setup2FAPage() {
             {/* Support Message Box */}
             <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center text-xs text-slate-400">
               ¿Problemas con tu dispositivo o perdiste acceso? Contacta al administrador en{' '}
-              <a href="mailto:admin@miportal.me" className="text-emerald-400 underline hover:text-emerald-300">
-                admin@miportal.me
+              <a href="mailto:deliverabilityguard@gmail.com" className="text-emerald-400 underline hover:text-emerald-300">
+                deliverabilityguard@gmail.com
               </a>{' '}
               para restablecimiento de seguridad.
             </div>
