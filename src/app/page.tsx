@@ -12,6 +12,7 @@ import PrintableAuditReport from '@/components/audit/PrintableAuditReport';
 import InboxPlacementSimulator from '@/components/audit/InboxPlacementSimulator';
 import MiPortalSuiteShowcase from '@/components/home/MiPortalSuiteShowcase';
 import Navbar from '@/components/navigation/Navbar';
+import DnsPaywall from '@/components/paywall/DnsPaywall';
 import Footer from '@/components/Footer';
 import { BOLD_SERVICES } from '@/config/payments';
 import {
@@ -49,6 +50,8 @@ export default function Home() {
   // DNS Audit State
   const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState<DomainAuditReport | null>(null);
+  const [isDnsUnlocked, setIsDnsUnlocked] = useState(false);
+  const [targetPaywallDomain, setTargetPaywallDomain] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isSavingDomain, setIsSavingDomain] = useState(false);
@@ -129,6 +132,16 @@ export default function Home() {
       return;
     }
 
+    if (!isDnsUnlocked) {
+      setTargetPaywallDomain(cleaned);
+      setErrorMsg(null);
+      const quickAuditEl = document.getElementById('quick-audit');
+      if (quickAuditEl) {
+        quickAuditEl.scrollIntoView({ behavior: 'smooth' });
+      }
+      return;
+    }
+
     setIsLoading(true);
     setErrorMsg(null);
     setDualInput(cleaned);
@@ -136,7 +149,7 @@ export default function Home() {
     try {
       const res = await fetch('/api/audit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-dns-token': 'DNS-BLINDAJE-2026' },
         body: JSON.stringify({ domain: cleaned }),
       });
 
@@ -661,6 +674,22 @@ export default function Home() {
             </p>
           </div>
 
+          {/* HARD PAYWALL EN AUDITORÍA DNS */}
+          {!isDnsUnlocked ? (
+            <div className="my-8">
+              <DnsPaywall
+                domain={targetPaywallDomain || (dualInput && actionTab === 'audit' ? dualInput.trim() : undefined)}
+                onUnlockWithToken={() => {
+                  setIsDnsUnlocked(true);
+                  const toAudit = targetPaywallDomain || dualInput;
+                  if (toAudit) {
+                    handleAudit(toAudit);
+                  }
+                }}
+              />
+            </div>
+          ) : (
+            <>
           {/* Formulario Rápido de Auditoría si no hay reporte activo */}
           {!report && (
             <div className="p-8 sm:p-10 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-2xl flex flex-col items-center text-center max-w-3xl mx-auto print:hidden">
@@ -1376,6 +1405,8 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          )}
+            </>
           )}
         </section>
 

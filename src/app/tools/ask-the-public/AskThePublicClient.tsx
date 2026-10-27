@@ -29,6 +29,7 @@ import {
 import type { AskPublicResponse, AskPublicCategories } from '@/types/ask-public';
 import type { MarketReportData } from '@/types/market-report';
 import PrintableMarketReport from '@/components/market/PrintableMarketReport';
+import MarketPaywall from '@/components/paywall/MarketPaywall';
 import { BOLD_SERVICES, formatCOP } from '@/config/payments';
 import AnswerThePublicWheel, { type WheelType } from '@/components/tools/AnswerThePublicWheel';
 
@@ -48,6 +49,7 @@ const CATEGORY_CONFIG: Record<
 };
 
 export default function AskThePublicClient() {
+  const [isUnlocked, setIsUnlocked] = useState(false);
   const [queryInput, setQueryInput] = useState('');
   const [lang, setLang] = useState('es');
   const [country, setCountry] = useState('es');
@@ -72,6 +74,10 @@ export default function AskThePublicClient() {
   };
 
   const handleSearch = async (overrideQuery?: string) => {
+    if (!isUnlocked) {
+      setErrorMsg('Acceso Pro requerido. Por favor desbloquea tu pase para realizar búsquedas en vivo.');
+      return;
+    }
     const q = (overrideQuery || queryInput).trim();
     if (!q) {
       setErrorMsg('Por favor ingresa un término de búsqueda o enlace web.');
@@ -87,7 +93,7 @@ export default function AskThePublicClient() {
     try {
       const res = await fetch('/api/ask-public', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-pro-token': 'PRO-VIP-2026' },
         body: JSON.stringify({ query: q, lang, country }),
       });
 
@@ -112,7 +118,7 @@ export default function AskThePublicClient() {
     try {
       const res = await fetch('/api/market-report', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-pro-token': 'PRO-VIP-2026' },
         body: JSON.stringify({
           query: result.searchTerm,
           detectedTitle: result.detectedTitle,
@@ -178,7 +184,16 @@ export default function AskThePublicClient() {
   ];
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative">
+      {/* HARD PAYWALL HERO CARD */}
+      {!isUnlocked && (
+        <div className="mb-12">
+          <MarketPaywall onUnlockWithCode={() => setIsUnlocked(true)} />
+        </div>
+      )}
+
+      {/* Contenido protegido (bloqueado y con backdrop blur inaccesible si no está desbloqueado) */}
+      <div className={!isUnlocked ? 'filter blur-[5px] opacity-25 pointer-events-none select-none max-h-[500px] overflow-hidden' : ''}>
       {/* ========================================================= */}
       {/* HERO & SEARCH ENGINE BAR                                  */}
       {/* ========================================================= */}
@@ -754,6 +769,8 @@ export default function AskThePublicClient() {
           </div>
         </div>
       )}
+
+      </div>
 
       {/* ========================================================= */}
       {/* MODAL / VISUALIZADOR DEL INFORME ACADÉMICO EN PDF        */}

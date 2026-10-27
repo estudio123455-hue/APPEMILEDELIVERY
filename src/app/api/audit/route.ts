@@ -17,6 +17,25 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  // Hard Paywall Enforcement (Anti-Bypass Check)
+  const authHeader = request.headers.get('authorization') || request.headers.get('x-dns-token');
+  const isAuthorized = authHeader && (
+    authHeader.includes('DNS-BLINDAJE-2026') ||
+    authHeader.includes('internal-secret')
+  );
+
+  if (!isAuthorized) {
+    return NextResponse.json(
+      {
+        error: 'PAYWALL_REQUIRED',
+        message: 'Módulo reservado. Incluye auditoría autoritativa RFC y blindaje en 24h oficial en Bold ($150.000 COP).',
+        checkoutUrl: 'https://checkout.bold.co/payment/LNK_33UADDKUTL',
+        amountCOP: 150000,
+      },
+      { status: 402 }
+    );
+  }
+
   // Extract client IP safely (supports proxies / cloudflare / vercel)
   const forwardedFor = request.headers.get('x-forwarded-for');
   const realIp = request.headers.get('x-real-ip');
