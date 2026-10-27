@@ -222,6 +222,46 @@ export default function MindCanvas() {
     }
   };
 
+  // Exportar PNG
+  const handleExportPng = () => {
+    if (!svgRef.current) return;
+    try {
+      const svgElement = svgRef.current;
+      const serializer = new XMLSerializer();
+      let source = serializer.serializeToString(svgElement);
+
+      if (!source.match(/^<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)) {
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+      }
+
+      const svgBlob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = svgElement.clientWidth || 1200;
+        canvas.height = svgElement.clientHeight || 760;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#07090E';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          const pngUrl = canvas.toDataURL('image/png');
+          const downloadLink = document.createElement('a');
+          downloadLink.href = pngUrl;
+          downloadLink.download = `miportal-mind-canvas-${Date.now()}.png`;
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+        }
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    } catch {
+      alert('Error exportando PNG');
+    }
+  };
+
   // Exportar SVG
   const handleExportSvg = () => {
     if (!svgRef.current) return;
@@ -293,7 +333,7 @@ export default function MindCanvas() {
             title="Cargar el mapa mental modelo de 5 pasos de TUNNELVISION"
           >
             <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Plantilla TUNNELVISION</span>
+            <span className="hidden sm:inline">Cargar Metodología TUNNELVISION</span>
           </button>
         </div>
 
@@ -316,6 +356,16 @@ export default function MindCanvas() {
           >
             <Download className="w-3.5 h-3.5 text-cyan-400" />
             <span className="hidden sm:inline">Exportar SVG</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportPng}
+            className="bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 backdrop-blur-md text-xs font-semibold text-slate-200 px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-lg active:scale-95"
+            title="Descargar diagrama en imagen rasterizada PNG"
+          >
+            <Download className="w-3.5 h-3.5 text-purple-400" />
+            <span className="hidden sm:inline">Exportar PNG</span>
           </button>
 
           <button

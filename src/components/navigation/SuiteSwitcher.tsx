@@ -75,7 +75,7 @@ export const SUITE_PRODUCTS: SuiteProduct[] = [
   },
   {
     id: 'mind-canvas',
-    name: 'Mind & Canvas',
+    name: '🧠 Mind & Ideas',
     badge: 'Beta',
     badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-bold',
     description: 'Organización visual de ideas: transforma el caos en proyectos estructurados.',

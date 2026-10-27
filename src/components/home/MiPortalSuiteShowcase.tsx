@@ -76,7 +76,7 @@ const SOLUTIONS: SolutionCard[] = [
       'Importación automática de servicios desde Bio Sites',
       'Garantía de entrega en bandeja principal sin marcas de spam',
     ],
-    ctaText: 'Crear Cotización / Factura',
+    ctaText: 'Verificar Mi Correo Profesional',
     ctaAction: 'business',
   },
   {
@@ -256,7 +256,7 @@ export default function MiPortalSuiteShowcase({ onSelectAuditAction }: MiPortalS
                         href="/business"
                         className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 transition group/btn"
                       >
-                        <span>Crear Cotización / Factura</span>
+                        <span>Verificar Mi Correo Profesional</span>
                         <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
                       </Link>
                       <span className="text-slate-600">•</span>
