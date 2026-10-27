@@ -6,6 +6,7 @@ import {
   ShieldCheck,
   Shield,
   BarChart3,
+  BookOpen,
   ExternalLink,
   Globe,
   Mail,
@@ -73,6 +74,8 @@ export function renderBioIcon(iconName?: string, className = 'w-5 h-5') {
       return <BarChart3 className={className} />;
     case 'sparkles':
       return <Sparkles className={className} />;
+    case 'book':
+      return <BookOpen className={className} />;
     case 'globe':
     default:
       return <Globe className={className} />;

@@ -23,6 +23,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
+  if (decodedSlug === 'tunnelvision') {
+    return {
+      title: 'TUNNELVISION • Studio | MiPortal Bio',
+      description:
+        'De caos a orden. Plataforma y metodología visual para mentes creativas sin tiempo.',
+      metadataBase: new URL('https://deliverabilityguard.miportal.me'),
+      openGraph: {
+        title: 'TUNNELVISION • Studio — Metodología de Caos a Orden',
+        description:
+          'Plataforma y metodología visual para mentes creativas sin tiempo. Canvas, Mind Diary y recursos de estructuración visual.',
+      },
+    };
+  }
+
   return {
     title: `${decodedSlug.toUpperCase()} | MiPortal Bio & Sites`,
     description: `Página comercial oficial y enlaces de negocio verificados por DeliverabilityGuard.`,

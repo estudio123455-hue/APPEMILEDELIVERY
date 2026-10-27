@@ -2,7 +2,7 @@ export interface BioLink {
   id: string;
   title: string;
   url: string;
-  icon?: string; // 'instagram' | 'x' | 'linkedin' | 'globe' | 'youtube' | 'mail' | 'whatsapp' | 'github' | 'calendar' | 'shield' | 'chart' | 'sparkles'
+  icon?: string; // 'instagram' | 'x' | 'linkedin' | 'globe' | 'youtube' | 'mail' | 'whatsapp' | 'github' | 'calendar' | 'shield' | 'chart' | 'sparkles' | 'book'
   highlight?: boolean;
   price?: string; // Opcional, para servicios o productos directos
 }
@@ -49,6 +49,40 @@ export const DEMO_BIO_PROFILE: BioProfile = {
       url: 'https://miportal.me/sites/builder',
       price: '$320 USD',
       icon: 'sparkles',
+      highlight: false,
+    },
+  ],
+};
+
+export const TUNNELVISION_BIO_PROFILE: BioProfile = {
+  slug: 'tunnelvision',
+  displayName: 'TUNNELVISION • Studio',
+  bio: 'De caos a orden. Plataforma y metodología visual para mentes creativas sin tiempo.',
+  avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+  theme: 'minimal-light',
+  isVerifiedSecurity: true,
+  links: [
+    {
+      id: 'tv-1',
+      title: 'Abrir Lienzo Creativo en Vivo',
+      url: '/tools/mind-canvas',
+      icon: 'sparkles',
+      highlight: true,
+    },
+    {
+      id: 'tv-2',
+      title: 'Consultoría de Branding & Benchmarking',
+      url: '/business',
+      price: '$240 USD',
+      icon: 'chart',
+      highlight: false,
+    },
+    {
+      id: 'tv-3',
+      title: "Metodología 'Mind Diary' (Guía PDF)",
+      url: '#',
+      price: 'Free',
+      icon: 'book',
       highlight: false,
     },
   ],

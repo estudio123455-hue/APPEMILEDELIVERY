@@ -13,6 +13,7 @@ import {
   Briefcase,
   Wrench,
   Sparkles,
+  Brain,
 } from 'lucide-react';
 
 export interface SuiteProduct {
@@ -71,6 +72,17 @@ export const SUITE_PRODUCTS: SuiteProduct[] = [
     icon: Briefcase,
     accentColor: 'text-amber-400 bg-amber-500/15 border-amber-500/30',
     activeWhen: (path) => path.startsWith('/business'),
+  },
+  {
+    id: 'mind-canvas',
+    name: 'Mind & Canvas',
+    badge: 'Beta',
+    badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-bold',
+    description: 'Organización visual de ideas: transforma el caos en proyectos estructurados.',
+    href: '/tools/mind-canvas',
+    icon: Brain,
+    accentColor: 'text-purple-400 bg-purple-500/15 border-purple-500/30',
+    activeWhen: (path) => path.startsWith('/tools/mind-canvas'),
   },
   {
     id: 'dns-wizard',
@@ -146,7 +158,7 @@ export default function SuiteSwitcher() {
               </span>
             </div>
             <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-              5 Módulos Activos
+              6 Módulos Activos
             </span>
           </div>
 

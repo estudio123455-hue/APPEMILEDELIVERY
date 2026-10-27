@@ -1,4 +1,4 @@
-import { BioProfile, DEFAULT_BIO_PROFILE } from '@/types/bio-sites';
+import { BioProfile, DEFAULT_BIO_PROFILE, TUNNELVISION_BIO_PROFILE } from '@/types/bio-sites';
 import { createClient } from '@/utils/supabase/client';
 
 const STORAGE_KEY_PREFIX = 'miportal_bio_profile_';
@@ -72,7 +72,6 @@ export async function saveBioProfile(profile: BioProfile): Promise<{ success: bo
       if (!upsertError) {
         cloudSaved = true;
       } else {
-        // La tabla puede no estar migrada aún en Supabase; localSaved garantiza continuidad
         console.info('Supabase bio_profiles sync skipped or not configured yet:', upsertError.message);
       }
     }
@@ -88,13 +87,12 @@ export async function saveBioProfile(profile: BioProfile): Promise<{ success: bo
 
 /**
  * Obtiene el perfil buscando primero en Supabase (si aplica) y luego en LocalStorage,
- * con fallback al perfil por defecto.
+ * con fallback al perfil por defecto o showcase.
  */
 export async function fetchBioProfile(slug: string): Promise<BioProfile> {
   const cleanSlug = normalizeSlug(slug);
 
   if (cleanSlug === 'demo') {
-    // Si hay una versión demo modificada en localStorage, usarla
     if (typeof window !== 'undefined') {
       try {
         const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}demo`);
@@ -104,6 +102,18 @@ export async function fetchBioProfile(slug: string): Promise<BioProfile> {
       }
     }
     return DEFAULT_BIO_PROFILE;
+  }
+
+  if (cleanSlug === 'tunnelvision') {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}tunnelvision`);
+        if (raw) return JSON.parse(raw) as BioProfile;
+      } catch {
+        // fallback
+      }
+    }
+    return TUNNELVISION_BIO_PROFILE;
   }
 
   // 1. Intentar cargar desde Supabase si estamos en navegador
@@ -172,6 +182,10 @@ export function getBioProfileSync(slug: string): BioProfile {
 
   if (cleanSlug === 'demo') {
     return DEFAULT_BIO_PROFILE;
+  }
+
+  if (cleanSlug === 'tunnelvision') {
+    return TUNNELVISION_BIO_PROFILE;
   }
 
   return {
