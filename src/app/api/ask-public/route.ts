@@ -133,24 +133,6 @@ function generateSmartFallback(term: string, key: keyof AskPublicCategories): st
 }
 
 export async function POST(req: Request) {
-  // Hard Paywall Enforcement (Anti-Bypass Check)
-  const authHeader = req.headers.get('authorization') || req.headers.get('x-pro-token');
-  const isAuthorized = authHeader && (
-    authHeader.includes('PRO-VIP-2026') ||
-    authHeader.includes('internal-secret')
-  );
-
-  if (!isAuthorized) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Acceso Pro requerido. Activa tu pase en Bold ($49.000 COP) para realizar consultas de mercado en vivo.',
-        code: 'PAYWALL_REQUIRED',
-        checkoutUrl: 'https://checkout.bold.co/payment/LNK_RNG6HJYEO8',
-      },
-      { status: 402 }
-    );
-  }
 
   try {
     const body = (await req.json().catch(() => ({}))) as {

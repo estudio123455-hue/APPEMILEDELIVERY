@@ -29,6 +29,9 @@ import {
 import type { AskPublicResponse, AskPublicCategories } from '@/types/ask-public';
 import type { MarketReportData } from '@/types/market-report';
 import PrintableMarketReport from '@/components/market/PrintableMarketReport';
+import MarketProModal from '@/components/paywall/MarketProModal';
+import { createClient } from '@/utils/supabase/client';
+import type { User } from '@supabase/supabase-js';
 import MarketPaywall from '@/components/paywall/MarketPaywall';
 import { BOLD_SERVICES, formatCOP } from '@/config/payments';
 import AnswerThePublicWheel, { type WheelType } from '@/components/tools/AnswerThePublicWheel';
@@ -49,7 +52,12 @@ const CATEGORY_CONFIG: Record<
 };
 
 export default function AskThePublicClient() {
-  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [supabase] = useState(() => createClient());
+  const [user, setUser] = useState<User | null>(null);
+  const [isPro, setIsPro] = useState(false);
+  const [dailySearchesCount, setDailySearchesCount] = useState(0);
+  const [showProModal, setShowProModal] = useState(false);
+  const [proModalConfig, setProModalConfig] = useState<{ title?: string; subtitle?: string }>({});
   const [queryInput, setQueryInput] = useState('');
   const [lang, setLang] = useState('es');
   const [country, setCountry] = useState('es');
@@ -60,6 +68,65 @@ export default function AskThePublicClient() {
   const [activeWheelTab, setActiveWheelTab] = useState<WheelType>('questions');
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('all');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const getTodayDateString = () => new Date().toISOString().split('T')[0];
+
+  useEffect(() => {
+    async function loadUsage() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+
+        const today = getTodayDateString();
+
+        if (user) {
+          // Consultar tabla user_usage en Supabase
+          const { data: usageData } = await supabase
+            .from('user_usage')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (usageData) {
+            setIsPro(Boolean(usageData.is_pro));
+            if (usageData.last_search_date !== today) {
+              setDailySearchesCount(0);
+            } else {
+              setDailySearchesCount(usageData.searches_count || 0);
+            }
+            return;
+          }
+        }
+
+        // Fallback a localStorage para anónimos o si la tabla no existe
+        const localUsage = typeof window !== 'undefined' ? localStorage.getItem('miportal_market_usage') : null;
+        if (localUsage) {
+          const parsed = JSON.parse(localUsage);
+          if (parsed.lastDate !== today) {
+            setDailySearchesCount(0);
+            localStorage.setItem('miportal_market_usage', JSON.stringify({ count: 0, lastDate: today }));
+          } else {
+            setDailySearchesCount(parsed.count || 0);
+          }
+        } else if (typeof window !== 'undefined') {
+          setDailySearchesCount(0);
+          localStorage.setItem('miportal_market_usage', JSON.stringify({ count: 0, lastDate: today }));
+        }
+      } catch (err) {
+        console.warn('Error loading market usage:', err);
+      }
+    }
+
+    loadUsage();
+  }, [supabase]);
+
+  const triggerProModal = (customTitle?: string, customSubtitle?: string) => {
+    setProModalConfig({
+      title: customTitle || 'Has alcanzado el límite gratuito diario',
+      subtitle: customSubtitle || 'Desbloquea búsquedas ilimitadas, matrices completas de 10 keywords y reportes PDF con IA.',
+    });
+    setShowProModal(true);
+  };
+
 
   // Estados para el Generador de Informe Académico con IA
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -74,13 +141,18 @@ export default function AskThePublicClient() {
   };
 
   const handleSearch = async (overrideQuery?: string) => {
-    if (!isUnlocked) {
-      setErrorMsg('Acceso Pro requerido. Por favor desbloquea tu pase para realizar búsquedas en vivo.');
-      return;
-    }
     const q = (overrideQuery || queryInput).trim();
     if (!q) {
       setErrorMsg('Por favor ingresa un término de búsqueda o enlace web.');
+      return;
+    }
+
+    // Regla Freemium: Si NO es Pro y ya realizó 1 búsqueda hoy, abrir Modal ChatGPT Pro
+    if (!isPro && dailySearchesCount >= 1) {
+      triggerProModal(
+        'Has alcanzado el límite gratuito diario',
+        'Desbloquea búsquedas ilimitadas, matrices completas de 10 keywords y reportes PDF con IA.'
+      );
       return;
     }
 
@@ -102,7 +174,29 @@ export default function AskThePublicClient() {
         throw new Error(data.error || 'No se pudieron obtener preguntas.');
       }
 
-      setResult(data);
+            setResult(data);
+
+      // Incrementar contador de búsqueda diaria
+      if (!isPro) {
+        const nextCount = dailySearchesCount + 1;
+        setDailySearchesCount(nextCount);
+        const today = getTodayDateString();
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('miportal_market_usage', JSON.stringify({ count: nextCount, lastDate: today }));
+        }
+
+        if (user) {
+          supabase
+            .from('user_usage')
+            .upsert({
+              user_id: user.id,
+              searches_count: nextCount,
+              last_search_date: today,
+            })
+            .then(() => {})
+            .catch(() => {});
+        }
+      }
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : 'Error al conectar con el servicio.');
     } finally {
@@ -185,15 +279,7 @@ export default function AskThePublicClient() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative">
-      {/* HARD PAYWALL HERO CARD */}
-      {!isUnlocked && (
-        <div className="mb-12">
-          <MarketPaywall onUnlockWithCode={() => setIsUnlocked(true)} />
-        </div>
-      )}
 
-      {/* Contenido protegido (bloqueado y con backdrop blur inaccesible si no está desbloqueado) */}
-      <div className={!isUnlocked ? 'filter blur-[5px] opacity-25 pointer-events-none select-none max-h-[500px] overflow-hidden' : ''}>
       {/* ========================================================= */}
       {/* HERO & SEARCH ENGINE BAR                                  */}
       {/* ========================================================= */}
@@ -213,6 +299,39 @@ export default function AskThePublicClient() {
         <p className="text-slate-400 text-base sm:text-lg leading-relaxed">
           Escribe una palabra clave o pega una dirección web (incluyendo canales de YouTube) para extraer al instante todas las preguntas y dudas que busca tu audiencia.
         </p>
+
+        {/* Banner Freemium de Estado */}
+        <div className="flex flex-wrap items-center justify-center gap-2.5 mt-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs text-slate-300">
+            <span className={`w-2 h-2 rounded-full ${isPro ? 'bg-cyan-400' : dailySearchesCount >= 1 ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+            <span>
+              {isPro
+                ? 'Pase Pro Activo • Búsquedas Ilimitadas'
+                : dailySearchesCount >= 1
+                ? 'Límite gratuito alcanzado hoy (1/1 usada)'
+                : 'Plan Gratuito: 1 búsqueda de prueba disponible hoy'}
+            </span>
+          </div>
+
+          {!user && (
+            <Link
+              href="/login"
+              className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold underline underline-offset-4"
+            >
+              Iniciar sesión para sincronizar
+            </Link>
+          )}
+
+          {!isPro && dailySearchesCount >= 1 && (
+            <button
+              type="button"
+              onClick={() => triggerProModal()}
+              className="text-xs text-emerald-400 hover:text-emerald-300 font-bold underline underline-offset-4 cursor-pointer"
+            >
+              Desbloquear ilimitadas ($49.000 COP)
+            </button>
+          )}
+        </div>
 
         {/* Input Bar Principal */}
         <div className="mt-8 max-w-3xl mx-auto">
@@ -387,7 +506,16 @@ export default function AskThePublicClient() {
               {/* Botón Destacado: Generador de Informe Académico con IA */}
               <button
                 type="button"
-                onClick={handleGenerateReport}
+                onClick={() => {
+                if (!isPro) {
+                  triggerProModal(
+                    'Has alcanzado el límite gratuito diario',
+                    'Desbloquea búsquedas ilimitadas, matrices completas de 10 keywords y reportes PDF con IA.'
+                  );
+                  return;
+                }
+                handleGenerateReport();
+              }}
                 disabled={isGeneratingReport}
                 className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 text-slate-950 font-extrabold text-xs transition-all shadow-lg shadow-emerald-500/25 hover:brightness-110 active:scale-95 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 title="Genera el informe formal de 5 tablas basado en Escucha Social y Benchmarking Digital"
@@ -421,7 +549,16 @@ export default function AskThePublicClient() {
 
                 <button
                   type="button"
-                  onClick={() => setViewMode('wheel')}
+                  onClick={() => {
+                  if (!isPro && dailySearchesCount >= 1) {
+                    triggerProModal(
+                      'Rueda SVG Completa Exclusiva Pro',
+                      'Desbloquea la visualización vectorial interactiva completa y ruedas SVG con tu Pase Pro.'
+                    );
+                    return;
+                  }
+                  setViewMode('wheel');
+                }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
                     viewMode === 'wheel'
                       ? 'bg-emerald-500 text-slate-950 shadow'
@@ -770,7 +907,12 @@ export default function AskThePublicClient() {
         </div>
       )}
 
-      </div>
+      <MarketProModal
+        isOpen={showProModal}
+        onClose={() => setShowProModal(false)}
+        title={proModalConfig.title}
+        subtitle={proModalConfig.subtitle}
+      />
 
       {/* ========================================================= */}
       {/* MODAL / VISUALIZADOR DEL INFORME ACADÉMICO EN PDF        */}

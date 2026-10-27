@@ -13,6 +13,7 @@ import InboxPlacementSimulator from '@/components/audit/InboxPlacementSimulator'
 import MiPortalSuiteShowcase from '@/components/home/MiPortalSuiteShowcase';
 import Navbar from '@/components/navigation/Navbar';
 import DnsPaywall from '@/components/paywall/DnsPaywall';
+import DnsBlindajeModal from '@/components/paywall/DnsBlindajeModal';
 import Footer from '@/components/Footer';
 import { BOLD_SERVICES } from '@/config/payments';
 import {
@@ -52,6 +53,7 @@ export default function Home() {
   const [report, setReport] = useState<DomainAuditReport | null>(null);
   const [isDnsUnlocked, setIsDnsUnlocked] = useState(false);
   const [targetPaywallDomain, setTargetPaywallDomain] = useState<string>('');
+  const [showDnsBlindajeModal, setShowDnsBlindajeModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isSavingDomain, setIsSavingDomain] = useState(false);
@@ -132,15 +134,7 @@ export default function Home() {
       return;
     }
 
-    if (!isDnsUnlocked) {
-      setTargetPaywallDomain(cleaned);
-      setErrorMsg(null);
-      const quickAuditEl = document.getElementById('quick-audit');
-      if (quickAuditEl) {
-        quickAuditEl.scrollIntoView({ behavior: 'smooth' });
-      }
-      return;
-    }
+
 
     setIsLoading(true);
     setErrorMsg(null);
@@ -674,22 +668,7 @@ export default function Home() {
             </p>
           </div>
 
-          {/* HARD PAYWALL EN AUDITORÍA DNS */}
-          {!isDnsUnlocked ? (
-            <div className="my-8">
-              <DnsPaywall
-                domain={targetPaywallDomain || (dualInput && actionTab === 'audit' ? dualInput.trim() : undefined)}
-                onUnlockWithToken={() => {
-                  setIsDnsUnlocked(true);
-                  const toAudit = targetPaywallDomain || dualInput;
-                  if (toAudit) {
-                    handleAudit(toAudit);
-                  }
-                }}
-              />
-            </div>
-          ) : (
-            <>
+
           {/* Formulario Rápido de Auditoría si no hay reporte activo */}
           {!report && (
             <div className="p-8 sm:p-10 rounded-3xl bg-slate-900/60 border border-slate-800 shadow-2xl flex flex-col items-center text-center max-w-3xl mx-auto print:hidden">
@@ -771,14 +750,25 @@ export default function Home() {
                       {/* Acciones del Dominio: Exportar PDF y Guardar */}
                       <div className="pt-2 flex flex-wrap items-center gap-3">
                         {/* Botón Exportar Reporte PDF */}
+                        {/* Acciones Freemium: Descargar PDF Ejecutivo y Doctor DNS */}
                         <button
                           type="button"
-                          onClick={() => window.print()}
-                          className="bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 shadow-sm active:scale-[0.98] cursor-pointer"
-                          title="Descargar o imprimir reporte técnico en formato PDF"
+                          onClick={() => setShowDnsBlindajeModal(true)}
+                          className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 shadow-sm active:scale-[0.98] cursor-pointer"
+                          title="Descargar Informe PDF Ejecutivo Certificado"
                         >
                           <FileDown className="w-4 h-4 text-emerald-400" />
-                          <span>Exportar Reporte PDF</span>
+                          <span>Descargar Informe PDF Ejecutivo</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowDnsBlindajeModal(true)}
+                          className="bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 shadow-sm active:scale-[0.98] cursor-pointer"
+                          title="Doctor DNS — Asistencia técnica y blindaje en 24h"
+                        >
+                          <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                          <span>Doctor DNS (Reparación Asistida)</span>
                         </button>
 
                         {/* Botón Guardar dominio para monitoreo */}
@@ -1406,8 +1396,11 @@ export default function Home() {
               </div>
             </div>
           )}
-            </>
-          )}
+          <DnsBlindajeModal
+            isOpen={showDnsBlindajeModal}
+            onClose={() => setShowDnsBlindajeModal(false)}
+            domain={report?.domain || targetPaywallDomain || dualInput}
+          />
         </section>
 
         {/* ========================================================== */}
