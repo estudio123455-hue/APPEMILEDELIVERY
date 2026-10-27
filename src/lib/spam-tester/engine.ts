@@ -1,12 +1,16 @@
 /**
  * Motor de Detección de Palabras Gatillo de Spam y Cálculo de Entregabilidad
- * Soporta análisis bilingüe (Español e Inglés), límites Unicode y verificación RFC.
+ * Normaliza acentos/diacríticos y mayúsculas/minúsculas para una detección infalible.
  */
 
 export interface SpamTriggerMatch {
   word: string;
-  category: 'urgency' | 'financial' | 'guarantee' | 'cta' | 'phishing';
-  severity: 'high' | 'medium' | 'low';
+  phrase: string;
+  category: string;
+  categoryKey: 'urgency' | 'financial' | 'guarantee' | 'cta' | 'phishing';
+  severity: 'Alta' | 'Media' | 'Baja';
+  severityKey: 'high' | 'medium' | 'low';
+  suggestion: string;
   replacement: string;
   foundIn: 'subject' | 'body' | 'both';
   count: number;
@@ -25,266 +29,273 @@ export interface SpamAnalysisResult {
   recommendations: string[];
 }
 
-interface SpamRule {
+interface InternalRule {
   pattern: RegExp;
   category: 'urgency' | 'financial' | 'guarantee' | 'cta' | 'phishing';
   severity: 'high' | 'medium' | 'low';
-  replacement: string;
+  suggestion: string;
+}
+
+const CATEGORY_NAMES: Record<InternalRule['category'], string> = {
+  urgency: 'Urgencia',
+  financial: 'Financiero',
+  guarantee: 'Garantía / Exageración',
+  cta: 'Llamado a la Acción (CTA)',
+  phishing: 'Phishing / Seguridad',
+};
+
+const SEVERITY_NAMES: Record<InternalRule['severity'], 'Alta' | 'Media' | 'Baja'> = {
+  high: 'Alta',
+  medium: 'Media',
+  low: 'Baja',
+};
+
+/**
+ * Normaliza el texto removiendo acentos y diacríticos preservando la longitud 1 a 1.
+ */
+export function stripDiacritics(str: string): string {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 /**
- * Crea un RegExp con límites de palabra conscientes de Unicode (soporta acentos y eñes).
+ * Reglas de detección ejecutadas sobre texto normalizado (sin diacríticos, case-insensitive).
  */
-function createUnicodePattern(patternStr: string): RegExp {
-  return new RegExp(`(?<![\\p{L}\\p{N}])${patternStr}(?![\\p{L}\\p{N}])`, 'giu');
-}
-
-export const SPAM_RULES: SpamRule[] = [
+const NORMALIZED_SPAM_RULES: InternalRule[] = [
   // 1. Urgencia y Presión
   {
-    pattern: createUnicodePattern('urgente|urgentes'),
+    pattern: /\bprioritari[oa]s?\b/gi,
     category: 'urgency',
     severity: 'high',
-    replacement: 'prioritario / de tu interés',
+    suggestion: 'importante / sugerido',
   },
   {
-    pattern: createUnicodePattern('act[uú]a\\s+ya'),
+    pattern: /\burgente|urgentes|urgent|urgently\b/gi,
     category: 'urgency',
     severity: 'high',
-    replacement: 'cuando puedas revisarlo',
+    suggestion: 'prioritario / de tu interés',
   },
   {
-    pattern: createUnicodePattern('[uú]ltima\\s+oportunidad'),
+    pattern: /\bactua ya|act now\b/gi,
     category: 'urgency',
     severity: 'high',
-    replacement: 'recordatorio final',
+    suggestion: 'cuando puedas revisarlo',
   },
   {
-    pattern: createUnicodePattern('tiempo\\s+limitado'),
+    pattern: /\bultima oportunidad|last chance\b/gi,
+    category: 'urgency',
+    severity: 'high',
+    suggestion: 'recordatorio final',
+  },
+  {
+    pattern: /\btiempo limitado|limited time\b/gi,
     category: 'urgency',
     severity: 'medium',
-    replacement: 'disponible hasta [fecha]',
+    suggestion: 'disponible hasta [fecha]',
   },
   {
-    pattern: createUnicodePattern('hazlo\\s+ahora'),
+    pattern: /\bhazlo ahora|do it now\b/gi,
     category: 'urgency',
     severity: 'medium',
-    replacement: 'puedes gestionarlo aquí',
+    suggestion: 'puedes gestionarlo aquí',
   },
   {
-    pattern: createUnicodePattern('urgent|urgently'),
+    pattern: /\binmediat[oa]|immediately\b/gi,
     category: 'urgency',
     severity: 'high',
-    replacement: 'priority / time-sensitive',
+    suggestion: 'a la brevedad',
   },
   {
-    pattern: createUnicodePattern('act\\s+now'),
-    category: 'urgency',
-    severity: 'high',
-    replacement: 'review when convenient',
-  },
-  {
-    pattern: createUnicodePattern('last\\s+chance'),
-    category: 'urgency',
-    severity: 'high',
-    replacement: 'final reminder',
-  },
-  {
-    pattern: createUnicodePattern('limited\\s+time'),
+    pattern: /\bexpira hoy|expires today\b/gi,
     category: 'urgency',
     severity: 'medium',
-    replacement: 'valid until [date]',
+    suggestion: 'fecha límite estimada',
+  },
+  {
+    pattern: /\bno te quedes fuera|don't miss out\b/gi,
+    category: 'urgency',
+    severity: 'medium',
+    suggestion: 'invitación abierta',
   },
 
   // 2. Financiero y Dinero
   {
-    pattern: createUnicodePattern('(?:100%\\s*)?gratis|totalmente\\s+gratis'),
+    pattern: /\b(?:100%\s*)?gratis|totalmente gratis|(?:100%\s*)?free|completely free\b/gi,
     category: 'financial',
     severity: 'high',
-    replacement: 'sin costo adicional / de cortesía',
+    suggestion: 'sin costo adicional / de cortesía',
   },
   {
-    pattern: createUnicodePattern('sin\\s+cost[oe](?:\\s+alguno)?|costo\\s+cero'),
+    pattern: /\bsin cost[oe](?:\s+adicional|\s+alguno)?|costo cero|no cost\b/gi,
     category: 'financial',
     severity: 'high',
-    replacement: 'incluido en tu plan / de cortesía',
+    suggestion: 'incluido en tu plan / de cortesía',
   },
   {
-    pattern: createUnicodePattern('gana\\s+dinero'),
+    pattern: /\bgana dinero|ganar dinero|make money|earn cash\b/gi,
     category: 'financial',
     severity: 'high',
-    replacement: 'mejora tus ingresos',
+    suggestion: 'mejora tus ingresos',
   },
   {
-    pattern: createUnicodePattern('dinero\\s+f[aá]cil'),
+    pattern: /\bmejora tus ingresos|aumenta tus ingresos\b/gi,
     category: 'financial',
-    severity: 'high',
-    replacement: 'optimización de presupuesto',
+    severity: 'medium',
+    suggestion: 'optimiza tu presupuesto',
   },
   {
-    pattern: createUnicodePattern('(?:dinero|ingresos?)\\s+extras?'),
+    pattern: /\bdinero facil|easy cash|easy money\b/gi,
     category: 'financial',
     severity: 'high',
-    replacement: 'nuevas oportunidades comerciales',
+    suggestion: 'optimización de recursos',
   },
   {
-    pattern: createUnicodePattern('millonario|millonaria'),
+    pattern: /\b(?:dinero|ingresos?)\s+extras?|extra income|extra cash\b/gi,
     category: 'financial',
     severity: 'high',
-    replacement: 'crecimiento financiero',
+    suggestion: 'nuevas oportunidades comerciales',
   },
   {
-    pattern: createUnicodePattern('premio|premios|recompensa\\s+en\\s+efectivo'),
+    pattern: /\bmillonari[oa]|millionaire\b/gi,
     category: 'financial',
     severity: 'high',
-    replacement: 'reconocimiento especial',
+    suggestion: 'crecimiento financiero',
   },
   {
-    pattern: createUnicodePattern('loter[ií]a|sorteo\\s+exclusivo'),
+    pattern: /\bpremio|premios|cash prize|recompensa en efectivo\b/gi,
     category: 'financial',
     severity: 'high',
-    replacement: 'beneficio exclusivo',
+    suggestion: 'reconocimiento especial',
   },
   {
-    pattern: createUnicodePattern('(?:100%\\s*)?free|completely\\s+free'),
+    pattern: /\bloteria|sorteo exclusivo|lottery\b/gi,
     category: 'financial',
     severity: 'high',
-    replacement: 'complimentary / at no extra charge',
+    suggestion: 'beneficio exclusivo',
   },
   {
-    pattern: createUnicodePattern('make\\s+money|earn\\s+cash'),
+    pattern: /\bcripto|bitcoin|criptomoneda|crypto\b/gi,
     category: 'financial',
-    severity: 'high',
-    replacement: 'increase revenue',
-  },
-  {
-    pattern: createUnicodePattern('easy\\s+cash|extra\\s+income'),
-    category: 'financial',
-    severity: 'high',
-    replacement: 'commercial growth',
-  },
-  {
-    pattern: createUnicodePattern('cash\\s+prize'),
-    category: 'financial',
-    severity: 'high',
-    replacement: 'reward',
+    severity: 'medium',
+    suggestion: 'activo digital',
   },
 
   // 3. Promesas y Garantías Excesivas
   {
-    pattern: createUnicodePattern('(?:100%\\s*)?garantizad[oa]s?|garant[ií]a\\s+(?:total|de\\s+por\\s+vida)'),
+    pattern: /\b(?:100%\s*)?garantizad[oa]s?|garantia (?:total|de por vida)|(?:100%\s*)?guaranteed|lifetime guarantee\b/gi,
     category: 'guarantee',
     severity: 'high',
-    replacement: 'respaldado con garantía / verificado',
+    suggestion: 'respaldado con garantía / verificado',
   },
   {
-    pattern: createUnicodePattern('sin\\s+riesgo'),
+    pattern: /\bsin riesgo|risk[\s-]free|cero riesgo\b/gi,
     category: 'guarantee',
     severity: 'medium',
-    replacement: 'con respaldo seguro',
+    suggestion: 'con respaldo seguro',
   },
   {
-    pattern: createUnicodePattern('satisfacci[oó]n\\s+garantizada'),
+    pattern: /\bsatisfaccion garantizada|satisfaction guaranteed\b/gi,
     category: 'guarantee',
     severity: 'medium',
-    replacement: 'compromiso de calidad',
+    suggestion: 'compromiso de calidad',
   },
   {
-    pattern: createUnicodePattern('milagros[oa]s?'),
+    pattern: /\bmilagros[oa]s?|miracle\b/gi,
     category: 'guarantee',
     severity: 'high',
-    replacement: 'efectivo / comprobado',
+    suggestion: 'efectivo / comprobado',
   },
   {
-    pattern: createUnicodePattern('(?:100%\\s*)?guaranteed|lifetime\\s+guarantee'),
+    pattern: /\binfalible|infallible\b/gi,
     category: 'guarantee',
     severity: 'high',
-    replacement: 'backed by policy',
-  },
-  {
-    pattern: createUnicodePattern('risk[\\s-]free'),
-    category: 'guarantee',
-    severity: 'medium',
-    replacement: 'secure agreement',
+    suggestion: 'altamente confiable',
   },
 
   // 4. Llamados a la Acción Agresivos (CTA)
   {
-    pattern: createUnicodePattern('(?:haz\\s+)?(?:clic|click)\\s+aqu[ií]'),
+    pattern: /\b(?:haz\s+)?(?:clic|click)\s+aqui|click here\b/gi,
     category: 'cta',
     severity: 'high',
-    replacement: 'conoce más en el portal / revisa el informe',
+    suggestion: 'conoce más en el portal / revisa el informe',
   },
   {
-    pattern: createUnicodePattern('click\\s+here'),
-    category: 'cta',
-    severity: 'high',
-    replacement: 'view the report / access here',
-  },
-  {
-    pattern: createUnicodePattern('compra\\s+ya|ordena\\s+ya'),
+    pattern: /\bcompra ya|ordena ya|buy now|order now\b/gi,
     category: 'cta',
     severity: 'medium',
-    replacement: 'disponible para adquirir',
+    suggestion: 'disponible para adquirir',
   },
   {
-    pattern: createUnicodePattern('buy\\s+now|order\\s+now'),
+    pattern: /\bno lo borres|don't delete|no borrar\b/gi,
+    category: 'cta',
+    severity: 'high',
+    suggestion: 'información de archivo',
+  },
+  {
+    pattern: /\bregistrate ahora|sign up now\b/gi,
     category: 'cta',
     severity: 'medium',
-    replacement: 'place your order',
+    suggestion: 'accede al registro',
   },
   {
-    pattern: createUnicodePattern('no\\s+lo\\s+borres'),
+    pattern: /\breserva tu lugar|claim your spot\b/gi,
     category: 'cta',
-    severity: 'high',
-    replacement: 'información de archivo',
-  },
-  {
-    pattern: createUnicodePattern("don't\\s+delete"),
-    category: 'cta',
-    severity: 'high',
-    replacement: 'important record',
+    severity: 'medium',
+    suggestion: 'confirma tu asistencia',
   },
 
-  // 5. Patrones Phishing / Riesgo Crítico
+  // 5. Phishing y Seguridad
   {
-    pattern: createUnicodePattern('confirma\\s+tu\\s+cuenta'),
+    pattern: /\bconfirma tu cuenta|verify your account\b/gi,
     category: 'phishing',
     severity: 'high',
-    replacement: 'gestiona tus credenciales',
+    suggestion: 'gestiona tus credenciales',
   },
   {
-    pattern: createUnicodePattern('actualiza\\s+tus\\s+datos\\s+bancarios'),
+    pattern: /\bactualiza tus datos bancarios|update billing info\b/gi,
     category: 'phishing',
     severity: 'high',
-    replacement: 'revisa tu perfil de facturación',
+    suggestion: 'revisa tu perfil de facturación',
   },
   {
-    pattern: createUnicodePattern('verify\\s+your\\s+account'),
+    pattern: /\brestablecer contrasena|reset password\b/gi,
     category: 'phishing',
     severity: 'high',
-    replacement: 'security check',
+    suggestion: 'asistencia de acceso',
   },
   {
-    pattern: createUnicodePattern('update\\s+billing\\s+info'),
+    pattern: /\bcuenta suspendida|account suspended\b/gi,
     category: 'phishing',
     severity: 'high',
-    replacement: 'review your billing portal',
+    suggestion: 'notificación de estado',
   },
 ];
 
 /**
- * Reemplaza de forma segura una palabra o frase gatillo respetando límites de palabras Unicode.
+ * Reemplaza de forma segura una palabra o frase gatillo respetando acentos y variaciones.
  */
-export function replaceSpamWord(text: string, word: string, replacement: string): string {
-  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'giu');
-  return text.replace(regex, replacement);
+export function replaceSpamWord(text: string, phraseToReplace: string, replacement: string): string {
+  if (!text || !phraseToReplace) return text;
+
+  // 1. Reemplazo directo con límites Unicode
+  const escaped = phraseToReplace.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const directRegex = new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'giu');
+  if (directRegex.test(text)) {
+    return text.replace(directRegex, replacement);
+  }
+
+  // 2. Reemplazo normalizando diacríticos (preservando índices)
+  const normText = stripDiacritics(text).toLowerCase();
+  const normPhrase = stripDiacritics(phraseToReplace).toLowerCase();
+  const idx = normText.indexOf(normPhrase);
+  if (idx !== -1) {
+    return text.slice(0, idx) + replacement + text.slice(idx + phraseToReplace.length);
+  }
+
+  return text.replace(new RegExp(escaped, 'gi'), replacement);
 }
 
 /**
- * Analiza el asunto y el cuerpo del correo en busca de señales de spam y retorna
- * métricas detalladas, score de 0 a 100 y lista de palabras encontradas.
+ * Analiza el asunto y cuerpo de correo en busca de palabras gatillo y calcula el Spam Risk Score.
  */
 export function analyzeEmailSpam({
   subject,
@@ -293,15 +304,19 @@ export function analyzeEmailSpam({
   subject: string;
   body: string;
 }): SpamAnalysisResult {
-  const normSubject = subject || '';
-  const normBody = body || '';
+  const normSubjectRaw = subject || '';
+  const normBodyRaw = body || '';
+
+  // Texto con diacríticos normalizados para comparación universal
+  const normSubject = stripDiacritics(normSubjectRaw);
+  const normBody = stripDiacritics(normBodyRaw);
 
   let score = 100;
   const triggersMap = new Map<string, SpamTriggerMatch>();
   const recommendations: string[] = [];
 
   // 1. Longitud del asunto
-  const subjectLen = normSubject.trim().length;
+  const subjectLen = normSubjectRaw.trim().length;
   let subjectCharWarning: string | undefined;
 
   if (subjectLen > 0 && subjectLen < 15) {
@@ -313,11 +328,11 @@ export function analyzeEmailSpam({
     score -= 10;
     subjectCharWarning =
       'Asunto excesivamente largo (>65 caracteres). En celulares se cortará después de ~35 caracteres.';
-    recommendations.push('Reduce el asunto a menos de 55 caracteres para que sea legible en pantallas de smartphones.');
+    recommendations.push('Reduce el asunto a menos de 55 caracteres para que sea legible en smartphones.');
   }
 
   // 2. Mayúsculas sostenidas en el asunto (ALL CAPS)
-  const wordsInSubject = normSubject.split(/\s+/).filter((w) => w.length >= 3);
+  const wordsInSubject = normSubjectRaw.split(/\s+/).filter((w) => w.length >= 3);
   const capsWords = wordsInSubject.filter(
     (w) => w === w.toUpperCase() && /[A-ZÁÉÍÓÚÑ]/.test(w)
   );
@@ -331,10 +346,10 @@ export function analyzeEmailSpam({
   }
 
   // 3. Puntuación excesiva (!! o ??)
-  const exclamationMatches = (normSubject + ' ' + normBody).match(/!{2,}/g) || [];
-  const questionMatches = (normSubject + ' ' + normBody).match(/\?{2,}/g) || [];
-  const exclamationCount = (normSubject.match(/!/g) || []).length;
-  const questionCount = (normSubject.match(/\?/g) || []).length;
+  const exclamationMatches = (normSubjectRaw + ' ' + normBodyRaw).match(/!{2,}/g) || [];
+  const questionMatches = (normSubjectRaw + ' ' + normBodyRaw).match(/\?{2,}/g) || [];
+  const exclamationCount = (normSubjectRaw.match(/!/g) || []).length;
+  const questionCount = (normSubjectRaw.match(/\?/g) || []).length;
 
   if (exclamationMatches.length > 0 || exclamationCount > 2) {
     score -= 12;
@@ -349,7 +364,7 @@ export function analyzeEmailSpam({
 
   // 4. Emojis en el asunto
   const emojiRegex = /[\p{Extended_Pictographic}]/u;
-  const emojisFound = Array.from(normSubject).filter((char) => emojiRegex.test(char));
+  const emojisFound = Array.from(normSubjectRaw).filter((char) => emojiRegex.test(char));
   if (emojisFound.length > 2) {
     score -= 8;
     recommendations.push(
@@ -357,45 +372,63 @@ export function analyzeEmailSpam({
     );
   }
 
-  // 5. Palabras Gatillo (Spam Triggers con soporte Unicode)
-  for (const rule of SPAM_RULES) {
-    const subjectMatches = [...normSubject.matchAll(rule.pattern)].map((m) => m[0]);
-    const bodyMatches = [...normBody.matchAll(rule.pattern)].map((m) => m[0]);
+  // 5. Palabras Gatillo (Spam Triggers) con matcher normalizado
+  for (const rule of NORMALIZED_SPAM_RULES) {
+    // Subject matching
+    for (const match of normSubject.matchAll(rule.pattern)) {
+      if (typeof match.index !== 'number') continue;
+      const origText = normSubjectRaw.slice(match.index, match.index + match[0].length);
+      const key = origText.toLowerCase();
 
-    const countInSubject = subjectMatches.length;
-    const countInBody = bodyMatches.length;
-    const totalCount = countInSubject + countInBody;
-
-    if (totalCount > 0) {
-      let foundIn: 'subject' | 'body' | 'both' = 'body';
-      if (countInSubject > 0 && countInBody > 0) foundIn = 'both';
-      else if (countInSubject > 0) foundIn = 'subject';
-
-      // Deducción ponderada según severidad y ubicación
-      let deduction = 0;
-      if (rule.severity === 'high') {
-        deduction = countInSubject * 14 + countInBody * 6;
-      } else if (rule.severity === 'medium') {
-        deduction = countInSubject * 8 + countInBody * 4;
-      } else {
-        deduction = countInSubject * 5 + countInBody * 2;
-      }
+      let deduction = rule.severity === 'high' ? 14 : rule.severity === 'medium' ? 8 : 5;
       score -= deduction;
 
-      // Extraer coincidencias únicas
-      const allMatchedTexts = Array.from(new Set([...subjectMatches, ...bodyMatches]));
-      for (const matchedText of allMatchedTexts) {
-        const key = matchedText.toLowerCase();
-        if (!triggersMap.has(key)) {
-          triggersMap.set(key, {
-            word: matchedText,
-            category: rule.category,
-            severity: rule.severity,
-            replacement: rule.replacement,
-            foundIn,
-            count: totalCount,
-          });
-        }
+      const existing = triggersMap.get(key);
+      if (!existing) {
+        triggersMap.set(key, {
+          word: origText,
+          phrase: origText,
+          category: CATEGORY_NAMES[rule.category],
+          categoryKey: rule.category,
+          severity: SEVERITY_NAMES[rule.severity],
+          severityKey: rule.severity,
+          suggestion: rule.suggestion,
+          replacement: rule.suggestion,
+          foundIn: 'subject',
+          count: 1,
+        });
+      } else {
+        existing.count += 1;
+        if (existing.foundIn === 'body') existing.foundIn = 'both';
+      }
+    }
+
+    // Body matching
+    for (const match of normBody.matchAll(rule.pattern)) {
+      if (typeof match.index !== 'number') continue;
+      const origText = normBodyRaw.slice(match.index, match.index + match[0].length);
+      const key = origText.toLowerCase();
+
+      let deduction = rule.severity === 'high' ? 6 : rule.severity === 'medium' ? 4 : 2;
+      score -= deduction;
+
+      const existing = triggersMap.get(key);
+      if (!existing) {
+        triggersMap.set(key, {
+          word: origText,
+          phrase: origText,
+          category: CATEGORY_NAMES[rule.category],
+          categoryKey: rule.category,
+          severity: SEVERITY_NAMES[rule.severity],
+          severityKey: rule.severity,
+          suggestion: rule.suggestion,
+          replacement: rule.suggestion,
+          foundIn: 'body',
+          count: 1,
+        });
+      } else {
+        existing.count += 1;
+        if (existing.foundIn === 'subject') existing.foundIn = 'both';
       }
     }
   }

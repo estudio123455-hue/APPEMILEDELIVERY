@@ -84,18 +84,22 @@ export default function SpamTesterClient() {
   };
 
   const handleApplyReplacement = (trigger: SpamTriggerMatch) => {
-    const firstOption = trigger.replacement.split('/')[0].trim();
-    setSubject((prev) => replaceSpamWord(prev, trigger.word, firstOption));
-    setBodyText((prev) => replaceSpamWord(prev, trigger.word, firstOption));
+    const targetWord = trigger.phrase || trigger.word;
+    const suggestionText = trigger.suggestion || trigger.replacement;
+    const firstOption = suggestionText.split('/')[0].trim();
+    setSubject((prev) => replaceSpamWord(prev, targetWord, firstOption));
+    setBodyText((prev) => replaceSpamWord(prev, targetWord, firstOption));
   };
 
   const handleApplyAllReplacements = () => {
     let newSubject = subject;
     let newBody = bodyText;
     for (const trigger of analysis.triggers) {
-      const firstOption = trigger.replacement.split('/')[0].trim();
-      newSubject = replaceSpamWord(newSubject, trigger.word, firstOption);
-      newBody = replaceSpamWord(newBody, trigger.word, firstOption);
+      const targetWord = trigger.phrase || trigger.word;
+      const suggestionText = trigger.suggestion || trigger.replacement;
+      const firstOption = suggestionText.split('/')[0].trim();
+      newSubject = replaceSpamWord(newSubject, targetWord, firstOption);
+      newBody = replaceSpamWord(newBody, targetWord, firstOption);
     }
     setSubject(newSubject);
     setBodyText(newBody);
@@ -290,45 +294,55 @@ export default function SpamTesterClient() {
                 </div>
               ) : (
                 <div className="space-y-2.5">
-                  {analysis.triggers.map((trigger, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-red-400 bg-red-950/40 px-2 py-0.5 rounded border border-red-500/30">
-                            "{trigger.word}"
-                          </span>
-                          <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold ${
-                              trigger.severity === 'high'
-                                ? 'bg-red-500/20 text-red-400'
-                                : 'bg-amber-500/20 text-amber-400'
-                            }`}
-                          >
-                            Severidad {trigger.severity}
-                          </span>
-                          <span className="text-slate-500 text-[11px]">
-                            ({trigger.foundIn === 'both' ? 'en asunto y cuerpo' : `en ${trigger.foundIn}`})
-                          </span>
-                        </div>
-                        <p className="text-slate-400 flex items-center gap-1.5 pt-0.5">
-                          <CornerDownRight className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span>Reemplazar por:</span>
-                          <strong className="text-emerald-300 font-semibold">{trigger.replacement}</strong>
-                        </p>
-                      </div>
+                  {analysis.triggers.map((trigger, idx) => {
+                    const isHigh = trigger.severityKey === 'high' || trigger.severity === 'Alta';
+                    const targetWord = trigger.phrase || trigger.word;
+                    const suggestionText = trigger.suggestion || trigger.replacement;
 
-                      <button
-                        type="button"
-                        onClick={() => handleApplyReplacement(trigger)}
-                        className="self-end sm:self-center px-2.5 py-1.5 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 font-medium text-[11px] transition shrink-0"
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition hover:border-slate-700"
                       >
-                        Aplicar cambio
-                      </button>
-                    </div>
-                  ))}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-bold text-red-400 bg-red-950/40 px-2 py-0.5 rounded border border-red-500/30">
+                              "{targetWord}"
+                            </span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                              {trigger.category}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                isHigh
+                                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                              }`}
+                            >
+                              Severidad {trigger.severity}
+                            </span>
+                            <span className="text-slate-500 text-[11px]">
+                              ({trigger.foundIn === 'both' ? 'en asunto y cuerpo' : `en ${trigger.foundIn === 'subject' ? 'asunto' : 'cuerpo'}`})
+                            </span>
+                          </div>
+
+                          <p className="text-slate-400 flex items-center gap-1.5 pt-0.5">
+                            <CornerDownRight className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <span>Sugerencia:</span>
+                            <strong className="text-emerald-300 font-semibold">{suggestionText}</strong>
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleApplyReplacement(trigger)}
+                          className="self-end sm:self-center px-3 py-1.5 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 font-medium text-[11px] transition shrink-0 flex items-center gap-1"
+                        >
+                          <span>Aplicar cambio</span>
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
