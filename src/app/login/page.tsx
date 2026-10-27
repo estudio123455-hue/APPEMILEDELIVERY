@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { ShieldCheck, LogOut, ArrowLeft, KeyRound, Sparkles } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 function LoginForm() {
@@ -12,6 +13,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
 
   const isVerifiedQuery = searchParams.get('verified') === 'true';
+  const isConfirmedQuery = searchParams.get('confirmed') === 'true';
+  const isMfaQuery = searchParams.get('mfa') === 'required';
   const callbackError = searchParams.get('error');
 
   const [email, setEmail] = useState('');
@@ -21,8 +24,10 @@ function LoginForm() {
   const [totpCode, setTotpCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showHelperBanner, setShowHelperBanner] = useState(true);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [showHelperBanner, setShowHelperBanner] = useState(isConfirmedQuery);
 
+  // Manejar errores de callback
   useEffect(() => {
     if (callbackError) {
       setError(
@@ -31,6 +36,63 @@ function LoginForm() {
     }
   }, [callbackError]);
 
+  // Si viene con ?mfa=required y no hay error explícito, alertar al usuario
+  useEffect(() => {
+    if (isMfaQuery && !error) {
+      setError('Debes verificar tu código de autenticación en dos pasos (2FA) para acceder.');
+    }
+  }, [isMfaQuery, error]);
+
+  // Blindaje al recargar la página (F5): Verificar si hay sesión en AAL1 con reto AAL2 pendiente
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkExistingMfaSession() {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          if (isMounted) setCheckingSession(false);
+          return;
+        }
+
+        const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        const currentLevel = aalData?.currentLevel;
+        const nextLevel = aalData?.nextLevel;
+
+        // Si la sesión está en AAL1 pero requiere elevación a AAL2
+        if (nextLevel === 'aal2' && currentLevel !== 'aal2') {
+          const factorsResponse = await supabase.auth.mfa.listFactors();
+          const verifiedFactor = factorsResponse.data?.totp?.find((f) => f.status === 'verified');
+
+          if (verifiedFactor && isMounted) {
+            setTotpFactorId(verifiedFactor.id);
+            setMfaRequired(true);
+          }
+        } else if (currentLevel === 'aal2' || (nextLevel === 'aal1' && currentLevel === 'aal1')) {
+          // Ya completó AAL2 o no requiere MFA: Redirigir fuera de /login
+          router.push('/');
+          router.refresh();
+          return;
+        }
+      } catch (err) {
+        console.error('Error verificando estado de sesión MFA:', err);
+      } finally {
+        if (isMounted) setCheckingSession(false);
+      }
+    }
+
+    checkExistingMfaSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
+
+  // Paso 1: Autenticación inicial con usuario y contraseña
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -65,7 +127,7 @@ function LoginForm() {
         return;
       }
 
-      // 3. Si tiene factor verificado y su nivel actual requiere elevación a AAL2
+      // 3. Si tiene factor verificado y su nivel actual requiere elevación a AAL2 (Bloqueo estricto)
       if (mfaData.nextLevel === 'aal2' || mfaData.currentLevel !== 'aal2') {
         setTotpFactorId(verifiedFactor.id);
         setMfaRequired(true);
@@ -73,7 +135,7 @@ function LoginForm() {
       }
 
       // 4. Si ya está verificado en AAL2
-      if (data.user) {
+      if (data.user && mfaData.currentLevel === 'aal2') {
         router.push('/');
         router.refresh();
       }
@@ -92,6 +154,7 @@ function LoginForm() {
     }
   };
 
+  // Paso 2: Desafío de código TOTP (AAL2)
   const handleMfaVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!totpFactorId) return;
@@ -116,6 +179,12 @@ function LoginForm() {
         throw verifyError;
       }
 
+      // Validar que se alcanzó efectivamente AAL2 antes de redirigir
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalData?.currentLevel !== 'aal2') {
+        throw new Error('No se pudo validar el segundo factor. Por favor intenta de nuevo.');
+      }
+
       router.push('/');
       router.refresh();
     } catch (err: unknown) {
@@ -131,6 +200,39 @@ function LoginForm() {
     }
   };
 
+  // Cancelar reto MFA y cerrar sesión completamente (evita sesión huérfana en AAL1)
+  const handleCancelAndSignOut = async () => {
+    try {
+      setLoading(true);
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      setMfaRequired(false);
+      setTotpFactorId(null);
+      setTotpCode('');
+      setEmail('');
+      setPassword('');
+      setError(null);
+      router.push('/login');
+      router.refresh();
+    } catch (err) {
+      console.error('Error cerrando sesión:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Spinner mientras se evalúa si hay una sesión activa o reto 2FA pendiente
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-white px-4 py-12 antialiased">
+        <div className="w-full max-w-md bg-[#121212] border border-neutral-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center justify-center gap-4">
+          <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs text-neutral-400 font-mono">Verificando sesión segura...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-white px-4 py-12 antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
       <div className="w-full max-w-md bg-[#121212] border border-neutral-800 rounded-2xl p-6 sm:p-8 shadow-2xl">
@@ -139,18 +241,11 @@ function LoginForm() {
           <div className="flex flex-col gap-5">
             <div className="text-center flex flex-col items-center">
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mb-3">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                  />
-                </svg>
+                <KeyRound className="w-6 h-6 stroke-[2.2]" />
               </div>
               <h2 className="text-xl font-bold tracking-tight">Verificación en Dos Pasos (2FA)</h2>
               <p className="text-neutral-400 text-xs mt-1 max-w-xs">
-                Ingresa el código temporal de 6 dígitos generado por tu aplicación Authenticator.
+                Ingresa el código temporal de 6 dígitos generado por tu aplicación Authenticator (Google Authenticator, Authy, etc.).
               </p>
             </div>
 
@@ -162,8 +257,8 @@ function LoginForm() {
 
             <form onSubmit={handleMfaVerify} className="space-y-4">
               <div>
-                <label className="block text-xs uppercase tracking-wider text-neutral-400 mb-1 text-center">
-                  Código de Autenticación
+                <label className="block text-xs uppercase tracking-wider text-neutral-400 mb-1 text-center font-mono">
+                  Código de Autenticación TOTP
                 </label>
                 <input
                   type="text"
@@ -183,9 +278,9 @@ function LoginForm() {
               <button
                 type="submit"
                 disabled={loading || totpCode.length !== 6}
-                className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold rounded-lg text-sm transition-all shadow-lg shadow-emerald-500/20"
+                className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold rounded-lg text-sm transition-all shadow-lg shadow-emerald-500/20 cursor-pointer active:scale-95"
               >
-                {loading ? 'Verificando...' : 'Verificar y Acceder'}
+                {loading ? 'Verificando código...' : 'Verificar y Acceder'}
               </button>
             </form>
 
@@ -197,16 +292,15 @@ function LoginForm() {
               para solicitar la revocación administrativa de tu factor.
             </div>
 
+            {/* Botón de Cancelar y Cerrar Sesión (Cierra la sesión AAL1 de inmediato) */}
             <button
               type="button"
-              onClick={() => {
-                setMfaRequired(false);
-                setTotpCode('');
-                setError(null);
-              }}
-              className="text-center text-xs text-neutral-400 hover:text-neutral-200 mt-1 transition"
+              onClick={handleCancelAndSignOut}
+              disabled={loading}
+              className="w-full py-2.5 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
-              ← Volver a ingresar usuario y contraseña
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Cancelar y cerrar sesión</span>
             </button>
           </div>
         ) : (
@@ -229,8 +323,8 @@ function LoginForm() {
               </div>
             )}
 
-            {/* Banner Informativo Anti-Confusión Justo Encima del Formulario */}
-            {showHelperBanner && (
+            {/* Banner Informativo Anti-Confusión: Solo si ?confirmed=true */}
+            {isConfirmedQuery && showHelperBanner && (
               <div className="mb-4 p-3.5 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-slate-300 flex items-start justify-between gap-3 shadow-inner">
                 <div className="flex items-start gap-2.5">
                   <span className="text-base select-none mt-0.5">💡</span>
@@ -266,7 +360,7 @@ function LoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@dominio.com"
-                  className="w-full px-4 py-2.5 rounded-lg bg-neutral-900 border border-neutral-700 focus:outline-none focus:border-blue-500 text-sm"
+                  className="w-full px-4 py-2.5 rounded-lg bg-neutral-900 border border-neutral-700 focus:outline-none focus:border-blue-500 text-sm text-white"
                 />
               </div>
 
@@ -280,14 +374,14 @@ function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2.5 rounded-lg bg-neutral-900 border border-neutral-700 focus:outline-none focus:border-blue-500 text-sm"
+                  className="w-full px-4 py-2.5 rounded-lg bg-neutral-900 border border-neutral-700 focus:outline-none focus:border-blue-500 text-sm text-white"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium rounded-lg text-sm transition-all"
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium rounded-lg text-sm transition-all shadow-md active:scale-95 cursor-pointer"
               >
                 {loading ? 'Iniciando sesión...' : 'Acceder'}
               </button>

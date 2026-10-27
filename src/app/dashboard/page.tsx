@@ -50,6 +50,12 @@ function DashboardContent() {
         return;
       }
 
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel !== 'aal2') {
+        router.push('/login?mfa=required');
+        return;
+      }
+
       setUserId(user.id);
       setUserEmail(user.email || null);
 

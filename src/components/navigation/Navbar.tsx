@@ -33,26 +33,54 @@ export default function Navbar({ initialUser, onSignOut }: NavbarProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Sync auth state
+  // Sync auth state con validación estricta de AAL2 (MFA Bypass Prevention)
   useEffect(() => {
-    if (initialUser !== undefined) {
-      setUser(initialUser);
-      return;
+    let isMounted = true;
+    const supabase = createClient();
+
+    async function evaluateAssuranceLevel(candidateUser: User | null) {
+      if (!candidateUser) {
+        if (isMounted) setUser(null);
+        return;
+      }
+
+      try {
+        const { data: aalData, error } =
+          await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+        if (error) {
+          if (isMounted) setUser(null);
+          return;
+        }
+
+        // Si el usuario requiere AAL2 pero su nivel actual no es AAL2 (reto pendiente)
+        // el Navbar debe tratarse estrictamente como usuario invitado / no autenticado
+        if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel !== 'aal2') {
+          if (isMounted) setUser(null);
+          return;
+        }
+
+        if (isMounted) setUser(candidateUser);
+      } catch {
+        if (isMounted) setUser(null);
+      }
     }
 
-    const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
+      evaluateAssuranceLevel(user);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      evaluateAssuranceLevel(session?.user ?? null);
     });
 
-    return () => subscription.unsubscribe();
-  }, [initialUser]);
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Close menus on route change
   useEffect(() => {

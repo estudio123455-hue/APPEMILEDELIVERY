@@ -31,6 +31,12 @@ export default function SecuritySettingsPage() {
         return;
       }
 
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel !== 'aal2') {
+        router.push('/login?mfa=required');
+        return;
+      }
+
       setUserEmail(user.email || null);
 
       const { data, error } = await supabase.auth.mfa.listFactors();

@@ -54,19 +54,47 @@ export default function Home() {
   const [saveDomainFeedback, setSaveDomainFeedback] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     const supabase = createClient();
 
+    async function evaluateAssuranceLevel(candidateUser: User | null) {
+      if (!candidateUser) {
+        if (isMounted) setUser(null);
+        return;
+      }
+
+      try {
+        const { data: aalData, error } =
+          await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+        if (error) {
+          if (isMounted) setUser(null);
+          return;
+        }
+
+        if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel !== 'aal2') {
+          if (isMounted) setUser(null);
+          return;
+        }
+
+        if (isMounted) setUser(candidateUser);
+      } catch {
+        if (isMounted) setUser(null);
+      }
+    }
+
     supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
+      evaluateAssuranceLevel(user);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      evaluateAssuranceLevel(session?.user ?? null);
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);

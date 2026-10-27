@@ -48,29 +48,67 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 2. Si el usuario está autenticado en una ruta protegida (como '/', '/dashboard', '/settings', etc.), verificar si tiene 2FA obligatorio activo
-  if (user && !isAuthExemptPath) {
-    const { data: factors } = await supabase.auth.mfa.listFactors();
-    const hasVerifiedTotp = factors?.totp?.some((f) => f.status === 'verified');
+  // 2. Validación Estricta de AAL2 y Factor de Autenticación
+  if (user) {
+    const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    const currentLevel = aalData?.currentLevel;
+    const nextLevel = aalData?.nextLevel;
+    const isMfaPending = nextLevel === 'aal2' && currentLevel !== 'aal2';
 
-    if (!hasVerifiedTotp) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = '/setup-2fa';
-      const redirectResponse = NextResponse.redirect(redirectUrl);
+    // Regla de Bloqueo por Reto MFA Pendiente (Prevención de Bypass)
+    if (isMfaPending) {
+      const isAllowedDuringMfa =
+        pathname.startsWith('/login') ||
+        pathname.startsWith('/auth') ||
+        pathname.startsWith('/api');
 
-      // Preservar cookies de sesión en la redirección
-      supabaseResponse.cookies.getAll().forEach((cookie) => {
-        redirectResponse.cookies.set(cookie.name, cookie.value);
-      });
+      if (!isAllowedDuringMfa) {
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = '/login';
+        redirectUrl.searchParams.set('mfa', 'required');
+        const redirectResponse = NextResponse.redirect(redirectUrl);
 
-      return redirectResponse;
+        // Preservar cookies de sesión para que /login reconozca el reto pendiente
+        request.cookies.getAll().forEach((cookie) => {
+          redirectResponse.cookies.set(cookie.name, cookie.value);
+        });
+        supabaseResponse.cookies.getAll().forEach((cookie) => {
+          redirectResponse.cookies.set(cookie.name, cookie.value);
+        });
+
+        return redirectResponse;
+      }
+    } else {
+      // El usuario está en AAL2 (o no requiere MFA)
+      // Si no es ruta exenta, verificar que tenga 2FA configurado obligatoriamente
+      if (!isAuthExemptPath) {
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const hasVerifiedTotp = factors?.totp?.some((f) => f.status === 'verified');
+
+        if (!hasVerifiedTotp) {
+          const redirectUrl = request.nextUrl.clone();
+          redirectUrl.pathname = '/setup-2fa';
+          const redirectResponse = NextResponse.redirect(redirectUrl);
+
+          // Preservar cookies de sesión en la redirección
+          request.cookies.getAll().forEach((cookie) => {
+            redirectResponse.cookies.set(cookie.name, cookie.value);
+          });
+          supabaseResponse.cookies.getAll().forEach((cookie) => {
+            redirectResponse.cookies.set(cookie.name, cookie.value);
+          });
+
+          return redirectResponse;
+        }
+      }
     }
   }
 
   // 3. Proteger rutas estrictamente privadas si no hay usuario autenticado
   const isStrictlyPrivateRoute =
     pathname.startsWith('/settings') ||
-    pathname.startsWith('/dashboard');
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/setup-2fa');
 
   if (!user && isStrictlyPrivateRoute) {
     const loginUrl = request.nextUrl.clone();
