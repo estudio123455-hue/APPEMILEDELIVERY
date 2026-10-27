@@ -2,7 +2,7 @@ export interface BioLink {
   id: string;
   title: string;
   url: string;
-  icon?: string; // 'instagram' | 'x' | 'linkedin' | 'globe' | 'youtube' | 'mail' | 'whatsapp' | 'github' | 'calendar'
+  icon?: string; // 'instagram' | 'x' | 'linkedin' | 'globe' | 'youtube' | 'mail' | 'whatsapp' | 'github' | 'calendar' | 'shield' | 'chart' | 'sparkles'
   highlight?: boolean;
   price?: string; // Opcional, para servicios o productos directos
 }
@@ -19,51 +19,39 @@ export interface BioProfile {
   isVerifiedSecurity: boolean; // Muestra la insignia DeliverabilityGuard
 }
 
-export const DEFAULT_BIO_PROFILE: BioProfile = {
+export const DEMO_BIO_PROFILE: BioProfile = {
   slug: 'demo',
-  displayName: 'Alejandro Morales',
-  bio: 'Especialista en Entregabilidad y Arquitectura Cloud. Ayudo a marcas a blindar su reputación de correo y certificar directivas DMARC/BIMI.',
-  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+  displayName: 'Agencia Nexus Digital',
+  bio: 'Consultoría en estrategia digital, arquitectura web y optimización de infraestructura de correo corporativo.',
+  avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80',
   theme: 'emerald',
   isVerifiedSecurity: true,
   links: [
     {
-      id: 'link-1',
-      title: 'Auditoría DNS & Entregabilidad Express',
-      url: '/#business-suite',
-      icon: 'globe',
-      highlight: true,
+      id: 'demo-1',
+      title: 'Auditoría Integral de Entregabilidad DNS',
+      url: 'https://miportal.me/#quick-audit',
       price: '$150 USD',
+      icon: 'shield',
+      highlight: true,
     },
     {
-      id: 'link-2',
-      title: 'Blindaje Antifraude DMARC & BIMI',
-      url: '/tools/generator',
-      icon: 'globe',
-      highlight: false,
-      price: '$350 USD',
-    },
-    {
-      id: 'link-3',
-      title: 'Consultoría 1-a-1 de Google Workspace',
-      url: 'https://cal.com/demo',
-      icon: 'calendar',
-      highlight: false,
-      price: '$90 USD',
-    },
-    {
-      id: 'link-4',
-      title: 'Hablemos directamente por WhatsApp',
-      url: 'https://wa.me/573001234567?text=Hola%20Alejandro,%20me%20interesa%20una%20auditoría',
-      icon: 'whatsapp',
+      id: 'demo-2',
+      title: 'Consultoría de Inteligencia de Mercado',
+      url: 'https://miportal.me/tools/ask-the-public',
+      price: '$280 USD',
+      icon: 'chart',
       highlight: false,
     },
     {
-      id: 'link-5',
-      title: 'Conectar en LinkedIn',
-      url: 'https://linkedin.com',
-      icon: 'linkedin',
+      id: 'demo-3',
+      title: 'Diseño y Setup de Bio Site Comercial',
+      url: 'https://miportal.me/sites/builder',
+      price: '$320 USD',
+      icon: 'sparkles',
       highlight: false,
     },
   ],
 };
+
+export const DEFAULT_BIO_PROFILE: BioProfile = DEMO_BIO_PROFILE;

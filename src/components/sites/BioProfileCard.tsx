@@ -4,6 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import {
   ShieldCheck,
+  Shield,
+  BarChart3,
   ExternalLink,
   Globe,
   Mail,
@@ -65,6 +67,12 @@ export function renderBioIcon(iconName?: string, className = 'w-5 h-5') {
       return <Mail className={className} />;
     case 'calendar':
       return <Calendar className={className} />;
+    case 'shield':
+      return <ShieldCheck className={className} />;
+    case 'chart':
+      return <BarChart3 className={className} />;
+    case 'sparkles':
+      return <Sparkles className={className} />;
     case 'globe':
     default:
       return <Globe className={className} />;

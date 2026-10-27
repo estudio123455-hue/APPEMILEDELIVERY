@@ -1377,6 +1377,11 @@ export default function Home() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/business" className="hover:text-amber-400 transition flex items-center gap-1.5">
+                    <span>MiPortal Business (Facturación & Cobros)</span>
+                  </Link>
+                </li>
+                <li>
                   <Link href="/tools/generator" className="hover:text-emerald-400 transition flex items-center gap-1.5">
                     <span>Generador de Registros SPF/DMARC</span>
                   </Link>

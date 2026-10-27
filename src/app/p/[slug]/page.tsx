@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { DEFAULT_DEMO_SITE } from '@/lib/sites/types';
 import PublicBioClientPage from './PublicBioClientPage';
 
 interface PageProps {
@@ -8,7 +7,21 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const decodedSlug = decodeURIComponent(slug);
+  const decodedSlug = decodeURIComponent(slug).toLowerCase().trim();
+
+  if (decodedSlug === 'demo') {
+    return {
+      title: 'Agencia Nexus Digital | MiPortal Bio',
+      description:
+        'Consultoría en estrategia digital, arquitectura web y optimización de infraestructura de correo corporativo.',
+      metadataBase: new URL('https://deliverabilityguard.miportal.me'),
+      openGraph: {
+        title: 'Agencia Nexus Digital — Perfil Comercial Verificado',
+        description:
+          'Consultoría en estrategia digital, arquitectura web y optimización de infraestructura de correo corporativo.',
+      },
+    };
+  }
 
   return {
     title: `${decodedSlug.toUpperCase()} | MiPortal Bio & Sites`,
