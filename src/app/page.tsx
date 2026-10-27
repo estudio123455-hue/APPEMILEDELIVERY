@@ -817,6 +817,55 @@ export default function Home() {
                   </div>
                 </div>
 
+                {/* Banner Destacado de Resolución Asistida / Monetización Bold */}
+                {(report.issues.length > 0 ||
+                  !report.dmarc.isValid ||
+                  report.dmarc.policy === 'none' ||
+                  !report.spf.isValid ||
+                  report.spf.errors.length > 0 ||
+                  report.blacklists.listed > 0 ||
+                  report.summary.criticalCount > 0 ||
+                  report.summary.warningCount > 0 ||
+                  report.status !== 'EXCELLENT') && (
+                  <div className="relative overflow-hidden p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-emerald-950/80 via-slate-900/90 to-teal-950/80 border-2 border-emerald-500/40 shadow-2xl shadow-emerald-950/50 flex flex-col md:flex-row items-center justify-between gap-6 print:hidden">
+                    <div className="flex items-start sm:items-center gap-4 relative z-10">
+                      <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20">
+                        <ShieldCheck className="w-8 h-8 stroke-[2.2]" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Resolución Asistida DeliverabilityGuard
+                          </span>
+                          <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 font-semibold">
+                            Fallas Detectadas en {report.domain}
+                          </span>
+                        </div>
+                        <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                          Blindaje y Reparación de Entregabilidad en 24h
+                        </h3>
+                        <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
+                          Corregimos tus registros SPF/DMARC/BIMI para evitar que tus correos y cotizaciones caigan a spam.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="shrink-0 w-full md:w-auto relative z-10 flex flex-col items-center md:items-end gap-1.5">
+                      <a
+                        href="https://checkout.bold.co/payment/LNK_33UADDKUTL"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full md:w-auto px-6 py-3.5 rounded-xl text-sm font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-500/25 hover:shadow-emerald-500/40 active:scale-95 cursor-pointer group"
+                      >
+                        <span>Contratar Blindaje — $150.000 COP</span>
+                        <ExternalLink className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                      </a>
+                      <span className="text-[10px] font-mono text-slate-400 text-center md:text-right">
+                        Pago 100% seguro con tarjeta o PSE vía Bold Checkout Oficial
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Asistente de Corrección Inmediata (Doctor de Entregabilidad) */}
                 {(!report.spf.isValid || !report.dmarc.isValid || report.dmarc.policy === 'none' || report.spf.errors.length > 0) && (
                   <DnsFixAssistant
@@ -1295,6 +1344,32 @@ export default function Home() {
                           )}
                         </div>
                       ))}
+
+                      {/* Solución Asistida para resolver todos los hallazgos */}
+                      <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-950 to-emerald-950/40 border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 mt-2 print:hidden shadow-lg">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
+                            <ShieldCheck className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h4 className="text-sm sm:text-base font-bold text-white">
+                              ¿Prefieres que un especialista aplique estas correcciones?
+                            </h4>
+                            <p className="text-xs text-slate-300 mt-0.5">
+                              Blindaje completo de registros SPF, DMARC y BIMI en menos de 24 horas.
+                            </p>
+                          </div>
+                        </div>
+                        <a
+                          href="https://checkout.bold.co/payment/LNK_33UADDKUTL"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 shrink-0"
+                        >
+                          <span>Contratar Blindaje — $150.000 COP</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
                     </div>
                   )}
                 </div>
